@@ -1,0 +1,16 @@
+{
+  "name": "review-pilot",
+  "version": "1.0.0",
+  "description": "Google Maps Review Reply AI SaaS on Cloudflare",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "keywords": ["cloudflare", "workers", "gemini", "google-business-profile", "saas"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "wrangler": "^3.100.0"
+  }
+}

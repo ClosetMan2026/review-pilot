@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReviewPilot (レビューパイロット) | Googleマップ口コミ半自動返信AIサービス</title>
+  <meta name="description" content="Googleマップの口コミに簡単返信。新着レビューがついたらAIが3パターンの返信案をメールでお届け。選んで1タップでGoogleマップへ即時返信完了。月額3,000円でMEO対策を効率化。">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', 'Noto Sans JP', sans-serif; }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .gradient-hero {
+      background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Header / Navigation -->
+  <header class="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-2 font-black text-xl text-indigo-600 tracking-tight">
+        <span class="text-2xl">✨</span> ReviewPilot
+      </a>
+      <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+        <a href="#features" class="hover:text-indigo-600 transition">特徴</a>
+        <a href="#demo" class="hover:text-indigo-600 transition">デモ体験</a>
+        <a href="#how-it-works" class="hover:text-indigo-600 transition">仕組み</a>
+        <a href="#pricing" class="hover:text-indigo-600 transition">料金プラン</a>
+        <a href="#faq" class="hover:text-indigo-600 transition">よくある質問</a>
+      </nav>
+      <div class="flex items-center gap-3">
+        <a href="/dashboard.html" class="text-sm font-semibold text-slate-700 hover:text-indigo-600 px-3 py-2 transition">管理画面デモ</a>
+        <a href="/dashboard.html" class="text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl shadow-sm hover:shadow-md transition">無料トライアル</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="relative pt-20 pb-28 gradient-hero overflow-hidden">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 text-center">
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-200/60 text-indigo-700 text-xs font-semibold mb-6 animate-pulse">
+        <span>🚀</span> GoogleビジネスプロフィールAPI連携 & Gemini AI搭載
+      </div>
+      <h1 class="text-4xl sm:text-6xl font-black text-slate-900 tracking-tight leading-tight sm:leading-tight mb-6">
+        Googleマップの口コミ返信、<br>
+        <span class="gradient-text">AIが考えてメールで選ぶだけ。</span>
+      </h1>
+      <p class="text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed">
+        新着レビューが届いたら、AIが作成した3つの返信案から選んで1タップでGoogleマップへ自動投稿。忙しい店主のための半自動MEO支援サービス。
+      </p>
+      
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+        <a href="#demo" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-4 rounded-2xl shadow-lg shadow-indigo-200 hover:shadow-xl transition transform hover:-translate-y-0.5">
+          <span>✨</span> 30秒でAI返信を試してみる
+        </a>
+        <a href="/dashboard.html" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold px-8 py-4 rounded-2xl shadow-sm hover:shadow transition">
+          店舗管理画面を見る →
+        </a>
+      </div>
+
+      <!-- Hero Visual: Email Notification Mockup -->
+      <div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 text-left transform transition hover:scale-[1.01]">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 bg-red-400 rounded-full inline-block"></span>
+            <span class="w-3 h-3 bg-yellow-400 rounded-full inline-block"></span>
+            <span class="w-3 h-3 bg-green-400 rounded-full inline-block"></span>
+            <span class="text-xs font-semibold text-slate-400 ml-2">ReviewPilot メール通知プレビュー</span>
+          </div>
+          <span class="text-xs bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded">リアルタイム検知</span>
+        </div>
+
+        <div class="space-y-4">
+          <div class="bg-amber-50/70 p-4 rounded-xl border border-amber-200/60">
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-bold text-slate-900 text-sm">お客様からの新着口コミ（★★★★★）</span>
+              <span class="text-xs text-slate-500">1分前</span>
+            </div>
+            <p class="text-sm text-slate-700 italic">「先週末に初めて伺いました！パスタのソースが絶品で、スタッフさんの笑顔も素敵でした。また友達を連れて行きます！」</p>
+          </div>
+
+          <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">👇 どのトーンで返信しますか？（タップするとGoogleマップへ即時投稿されます）</p>
+
+          <div class="grid gap-3">
+            <div class="p-3 bg-slate-50 hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-300 rounded-xl transition cursor-pointer">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-bold text-indigo-700">【A. 王道・丁寧】</span>
+                <span class="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg font-bold">1タップで返信</span>
+              </div>
+              <p class="text-xs text-slate-600">「ご来店誠にありがとうございました。パスタをお気に召していただき大変光栄です。次回は季節限定メニューもぜひお試しくださいませ！」</p>
+            </div>
+
+            <div class="p-3 bg-slate-50 hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-300 rounded-xl transition cursor-pointer">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-bold text-emerald-700">【B. 親しみ・フレンドリー】</span>
+                <span class="text-xs bg-emerald-600 text-white px-2.5 py-1 rounded-lg font-bold">1タップで返信</span>
+              </div>
+              <p class="text-xs text-slate-600">「嬉しいお言葉ありがとうございます！パスタ気に入っていただけてシェフも喜んでおります😊 またご友人とのご来店を心よりお待ちしております！」</p>
+            </div>
+
+            <div class="p-3 bg-slate-50 hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-300 rounded-xl transition cursor-pointer">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-bold text-slate-700">【D. 自分で手動編集して返信する】</span>
+                <span class="text-xs bg-slate-700 text-white px-2.5 py-1 rounded-lg font-bold">編集画面を開く</span>
+              </div>
+              <p class="text-xs text-slate-500">AI案をベースに手直ししたり、自由な文章で返信を作成します。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="py-20 bg-white border-y border-slate-200">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+      <div class="text-center max-w-2xl mx-auto mb-16">
+        <h2 class="text-xs font-extrabold text-indigo-600 uppercase tracking-widest mb-2">FEATURES</h2>
+        <p class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">店舗オーナーのための4つの圧倒的メリット</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200/80">
+          <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center text-2xl mb-4">⚡</div>
+          <h3 class="font-bold text-lg text-slate-900 mb-2">リアルタイム検知</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">Googleマップに口コミがついた瞬間、Pub/Sub Webhookで即座に検知し店主のメールへ通知します。</p>
+        </div>
+
+        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200/80">
+          <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center text-2xl mb-4">🤖</div>
+          <h3 class="font-bold text-lg text-slate-900 mb-2">3パターンの返信案</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">星の数や口コミ内容に合わせて、Geminiが「丁寧」「フレンドリー」「お詫び/改善」の3案を瞬時に作成。</p>
+        </div>
+
+        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200/80">
+          <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center text-2xl mb-4">👆</div>
+          <h3 class="font-bold text-lg text-slate-900 mb-2">1タップ返信（ログイン不要）</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">メール内のボタンを押すだけでGoogleマップへ即座に投稿。忙しい営業中でも片手で返信が完結します。</p>
+        </div>
+
+        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200/80">
+          <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center text-2xl mb-4">✍️</div>
+          <h3 class="font-bold text-lg text-slate-900 mb-2">手動編集（パターンD）</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">「ちょっと自分の言葉も足したい」時は、リンクから専用の編集画面を開いて自由に文章を調整できます。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Demo Simulator Section -->
+  <section id="demo" class="py-20 bg-slate-50">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6">
+      <div class="text-center max-w-2xl mx-auto mb-12">
+        <h2 class="text-xs font-extrabold text-indigo-600 uppercase tracking-widest mb-2">INTERACTIVE DEMO</h2>
+        <p class="text-3xl font-extrabold text-slate-900 tracking-tight">AI返信シミュレータを体験</p>
+        <p class="text-sm text-slate-600 mt-2">実際の口コミを想定して、AIがどのような返信案を作成するかお試しください。</p>
+      </div>
+
+      <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-200">
+        <!-- Preset Selector -->
+        <div class="mb-6">
+          <label class="block text-xs font-bold text-slate-600 mb-2">💡 例文プリセットを選ぶ:</label>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="setDemoPreset('pasta')" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 transition border border-slate-200">🍝 飲食店・絶賛レビュー (★5)</button>
+            <button onclick="setDemoPreset('salon')" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 transition border border-slate-200">✂️ 美容室・リピート宣言 (★5)</button>
+            <button onclick="setDemoPreset('complaint')" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-red-50 hover:text-red-600 transition border border-slate-200">⚠️ 待ち時間が長かったクレーム (★2)</button>
+          </div>
+        </div>
+
+        <!-- Input Form -->
+        <div class="grid sm:grid-cols-3 gap-4 mb-4">
+          <div class="sm:col-span-1">
+            <label class="block text-xs font-bold text-slate-700 mb-1">評価（星の数）</label>
+            <select id="demo-rating" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <option value="5">⭐⭐⭐⭐⭐ (★5 大満足)</option>
+              <option value="4">⭐⭐⭐⭐ (★4 満足)</option>
+              <option value="3">⭐⭐⭐ (★3 普通)</option>
+              <option value="2">⭐⭐ (★2 やや不満)</option>
+              <option value="1">⭐ (★1 不満/クレーム)</option>
+            </select>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-bold text-slate-700 mb-1">店舗の業種</label>
+            <input type="text" id="demo-category" value="イタリアンレストラン" placeholder="例: カフェ、美容室、整体院" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="mb-6">
+          <label class="block text-xs font-bold text-slate-700 mb-1">お客様の口コミ本文</label>
+          <textarea id="demo-text" rows="3" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="口コミを入力してください...">先週ランチで伺いました！カルボナーラが濃厚でパンも温かくて最高でした。ただ混んでいたので少し待ちました。また来ます！</textarea>
+        </div>
+
+        <button onclick="generateDemoReplies()" id="demo-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
+          <span>✨</span> 3パターンの返信案を生成する
+        </button>
+
+        <!-- Output Cards -->
+        <div id="demo-results" class="mt-8 space-y-4 hidden">
+          <div class="border-t border-slate-200 pt-6">
+            <h4 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-4">AIが生成した返信案（メールに届く内容）</h4>
+
+            <div class="space-y-4">
+              <!-- Pattern A -->
+              <div class="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-200">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded">パターンA: 王道・丁寧</span>
+                  <span class="text-xs text-indigo-600 font-semibold cursor-pointer hover:underline" onclick="copyReply('reply-a')">コピー</span>
+                </div>
+                <p id="reply-a" class="text-sm text-slate-700 leading-relaxed"></p>
+              </div>
+
+              <!-- Pattern B -->
+              <div class="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">パターンB: 親しみ・フレンドリー</span>
+                  <span class="text-xs text-emerald-600 font-semibold cursor-pointer hover:underline" onclick="copyReply('reply-b')">コピー</span>
+                </div>
+                <p id="reply-b" class="text-sm text-slate-700 leading-relaxed"></p>
+              </div>
+
+              <!-- Pattern C -->
+              <div class="p-4 rounded-2xl bg-amber-50/50 border border-amber-200">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">パターンC: 誠実・改善 / お詫び</span>
+                  <span class="text-xs text-amber-700 font-semibold cursor-pointer hover:underline" onclick="copyReply('reply-c')">コピー</span>
+                </div>
+                <p id="reply-c" class="text-sm text-slate-700 leading-relaxed"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Google Guidelines Compliance Section -->
+  <section class="py-16 bg-white border-b border-slate-200">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+      <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 text-2xl mb-4">🛡️</div>
+      <h2 class="text-2xl font-bold text-slate-900 mb-3">Googleのポリシーに完全準拠した安全設計</h2>
+      <p class="text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto mb-6">
+        Googleは完全自動のスパム投稿を厳しく禁止しています。ReviewPilotは「AIが作成した案を店舗オーナーが確認・選択して投稿する」<strong>ヒューマン・イン・ザ・ループ（Human-in-the-loop）方式</strong>を採用しているため、アカウント停止リスクがなく安全にお使いいただけます。
+      </p>
+      <div class="flex flex-wrap justify-center gap-6 text-xs font-bold text-slate-500">
+        <span class="flex items-center gap-1.5">✅ Google Business Profile API 公式連携</span>
+        <span class="flex items-center gap-1.5">✅ 完全自動スパムの排除</span>
+        <span class="flex items-center gap-1.5">✅ 厳格なデータ保護ポリシー</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Section -->
+  <section id="pricing" class="py-20 bg-slate-50">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6">
+      <div class="text-center max-w-2xl mx-auto mb-12">
+        <h2 class="text-xs font-extrabold text-indigo-600 uppercase tracking-widest mb-2">PRICING</h2>
+        <p class="text-3xl font-extrabold text-slate-900 tracking-tight">シンプルな月額サブスクリプション</p>
+        <p class="text-sm text-slate-600 mt-2">高額なMEO業者に頼る必要はありません。1店舗あたり1日たったの100円。</p>
+      </div>
+
+      <div class="max-w-md mx-auto bg-white p-8 rounded-3xl shadow-xl border-2 border-indigo-600 relative">
+        <div class="absolute -top-3.5 right-6 bg-indigo-600 text-white text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">14日間無料トライアル</div>
+        
+        <h3 class="text-xl font-bold text-slate-900 mb-1">スタンダードプラン</h3>
+        <p class="text-xs text-slate-500 mb-6">個人店・サロン・飲食店に最適な全機能込みプラン</p>
+
+        <div class="flex items-baseline gap-2 mb-6">
+          <span class="text-4xl font-black text-slate-900">¥3,000</span>
+          <span class="text-sm font-bold text-slate-500">/ 月（1店舗・税込）</span>
+        </div>
+
+        <ul class="space-y-3 text-sm text-slate-700 mb-8">
+          <li class="flex items-center gap-2">
+            <span class="text-indigo-600 font-bold">✓</span> 口コミ無制限のリアルタイム検知
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="text-indigo-600 font-bold">✓</span> Gemini搭載 AI 3パターン返信生成
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="text-indigo-600 font-bold">✓</span> メール内1タップ即時返信
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="text-indigo-600 font-bold">✓</span> 手動編集モード（パターンD）
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="text-indigo-600 font-bold">✓</span> 月次口コミサマリーレポート
+          </li>
+        </ul>
+
+        <a href="/dashboard.html" class="block text-center w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-md hover:shadow-lg transition">
+          14日間無料で試す（クレカ登録不要）
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section id="faq" class="py-20 bg-white border-t border-slate-200">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6">
+      <div class="text-center mb-12">
+        <h2 class="text-xs font-extrabold text-indigo-600 uppercase tracking-widest mb-2">FAQ</h2>
+        <p class="text-3xl font-extrabold text-slate-900 tracking-tight">よくあるご質問</p>
+      </div>
+
+      <div class="space-y-4">
+        <details class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+          <summary class="font-bold text-slate-900 cursor-pointer">Q. Googleのアカウント連携は簡単にできますか？</summary>
+          <p class="text-sm text-slate-600 mt-3 leading-relaxed">はい、「Googleで連携」ボタンを押して店舗アカウントでログインするだけで、1分で連携が完了します。</p>
+        </details>
+
+        <details class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+          <summary class="font-bold text-slate-900 cursor-pointer">Q. クレームや低評価のレビューが来たときはどうなりますか？</summary>
+          <p class="text-sm text-slate-600 mt-3 leading-relaxed">★1〜2のレビューには、AIが誠実なお詫びと改善姿勢を示す返信案を作成します。また、手動編集画面で文章を慎重に推敲して投稿することも可能です。</p>
+        </details>
+
+        <details class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+          <summary class="font-bold text-slate-900 cursor-pointer">Q. 無料トライアル終了後に自動課金されますか？</summary>
+          <p class="text-sm text-slate-600 mt-3 leading-relaxed">トライアル開始時にクレジットカードの登録は不要です。14日間の体験後に継続をご希望の場合のみ決済情報をご登録いただきます。</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-200 bg-slate-900 text-slate-400 py-12 text-sm">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-6 mb-8">
+        <div class="flex items-center gap-2 font-black text-xl text-white">
+          <span>✨</span> ReviewPilot
+        </div>
+        <div class="flex flex-wrap gap-6 text-xs text-slate-400">
+          <a href="/privacy.html" class="hover:text-white transition">プライバシーポリシー</a>
+          <a href="/terms.html" class="hover:text-white transition">利用規約</a>
+          <a href="#demo" class="hover:text-white transition">デモ体験</a>
+          <a href="/dashboard.html" class="hover:text-white transition">管理画面</a>
+        </div>
+      </div>
+      <div class="text-center sm:text-left text-xs border-t border-slate-800 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <p>&copy; 2026 ReviewPilot. All rights reserved.</p>
+        <p>Google is a trademark of Google LLC.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Interactive JavaScript Logic -->
+  <script>
+    const demoPresets = {
+      pasta: {
+        rating: "5",
+        category: "イタリアンレストラン",
+        text: "先週ランチで伺いました！カルボナーラが濃厚でパンも温かくて最高でした。また友達とディナーに行きます！"
+      },
+      salon: {
+        rating: "5",
+        category: "ヘアサロン・美容室",
+        text: "初めてのカラーでしたが、丁寧にカウンセリングしてくれて希望通りのミルクティーベージュになりました！トリートメントでサラサラです。"
+      },
+      complaint: {
+        rating: "2",
+        category: "居酒屋",
+        text: "料理は美味しかったのですが、金曜の夜で混んでいたせいか最初の注文から料理が出てくるまで30分以上待たされました。"
+      }
+    };
+
+    function setDemoPreset(key) {
+      const p = demoPresets[key];
+      if (p) {
+        document.getElementById('demo-rating').value = p.rating;
+        document.getElementById('demo-category').value = p.category;
+        document.getElementById('demo-text').value = p.text;
+        generateDemoReplies();
+      }
+    }
+
+    function generateDemoReplies() {
+      const rating = document.getElementById('demo-rating').value;
+      const category = document.getElementById('demo-category').value;
+      const text = document.getElementById('demo-text').value;
+
+      const btn = document.getElementById('demo-btn');
+      btn.innerHTML = '<span>⏳</span> AIが返信案を考案中...';
+      btn.disabled = true;
+
+      setTimeout(() => {
+        let replyA = "", replyB = "", replyC = "";
+
+        if (parseInt(rating) >= 4) {
+          replyA = `この度は${category}をご利用いただき、また心温まる口コミをご投稿いただき誠にありがとうございます。「${text.slice(0, 18)}...」とのお言葉、スタッフ一同大変励みになります。今後ともご満足いただけるサービスと空間をご提供できるよう努めてまいります。またのお越しを心よりお待ちしております。`;
+          replyB = `嬉しいお言葉をありがとうございます！気に入っていただけてシェフ・スタッフ一同とても喜んでおります😊 次回はぜひ他のメニューも楽しんでみてくださいね！またお会いできるのを楽しみにお待ちしております！`;
+          replyC = `ご来店いただき誠にありがとうございました。当店こだわりの味と接客をご体感いただけて光栄です。季節ごとに新しい限定メニューやサービスもご用意しておりますので、次回のご来店の際もぜひご期待くださいませ。`;
+        } else {
+          replyA = `この度は当店をご利用いただいたにもかかわらず、ご不快な思いをさせてしまい誠に申し訳ございませんでした。ご指摘いただきました点につきましては真摯に受け止め、早急にオペレーションの改善とスタッフ教育を徹底いたします。貴重なご意見を賜り感謝申し上げます。`;
+          replyB = `ご来店誠にありがとうございました。せっかくお越しいただいたにもかかわらず、ご期待に沿えず大変申し訳ありませんでした。いただいたご意見をスタッフ全員で共有し、スムーズにご案内できるよう体制を早急に見直します。率直なご意見をありがとうございました。`;
+          replyC = `この度はご満足のいくお時間をご提供できず、深くお詫び申し上げます。混雑時においても安定したサービスを提供できるよう、調理および配膳フローの見直しを実施いたします。今後はより快適にお過ごしいただけるよう改善に努めてまいります。`;
+        }
+
+        document.getElementById('reply-a').innerText = replyA;
+        document.getElementById('reply-b').innerText = replyB;
+        document.getElementById('reply-c').innerText = replyC;
+
+        document.getElementById('demo-results').classList.remove('hidden');
+        btn.innerHTML = '<span>✨</span> 3パターンの返信案を再生成する';
+        btn.disabled = false;
+
+        document.getElementById('demo-results').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 500);
+    }
+
+    function copyReply(id) {
+      const text = document.getElementById(id).innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        alert('クリップボードにコピーしました！');
+      });
+    }
+  </script>
+
+</body>
+</html>

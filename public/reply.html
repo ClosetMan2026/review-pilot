@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>口コミ手動編集・返信 | ReviewPilot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', 'Noto Sans JP', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col justify-between">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200">
+    <div class="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-2 font-black text-indigo-600">
+        <span>✨</span> ReviewPilot
+      </div>
+      <span class="text-xs text-slate-500 font-medium">TRATTORIA SHIBUYA (渋谷店)</span>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-2xl w-full mx-auto px-4 py-8 flex-1">
+    
+    <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200">
+      
+      <div class="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
+        <h1 class="text-lg font-black text-slate-900">✍️ 口コミへの返信を作成</h1>
+        <span class="text-xs bg-indigo-50 text-indigo-700 font-bold px-2.5 py-1 rounded-full">パターンD: 手動編集</span>
+      </div>
+
+      <!-- Target Review Box -->
+      <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-6">
+        <div class="flex items-center justify-between mb-1">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-sm text-slate-900">鈴木 一郎 様の口コミ</span>
+            <span class="text-amber-500 text-xs font-bold">★★☆☆☆</span>
+          </div>
+          <span class="text-xs text-slate-400">10分前</span>
+        </div>
+        <p class="text-sm text-slate-700 leading-relaxed italic">
+          「料理はおいしかったのですが、隣の席との間隔が狭くて少し落ち着かなかったです。」
+        </p>
+      </div>
+
+      <!-- AI Templates Insert Buttons -->
+      <div class="mb-4">
+        <label class="block text-xs font-bold text-slate-600 mb-2">💡 AIの生成案をベースに挿入する:</label>
+        <div class="grid grid-cols-3 gap-2">
+          <button onclick="insertTemplate('a')" class="text-xs font-semibold py-2 px-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition text-center truncate">
+            A. 丁寧・王道
+          </button>
+          <button onclick="insertTemplate('b')" class="text-xs font-semibold py-2 px-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition text-center truncate">
+            B. フレンドリー
+          </button>
+          <button onclick="insertTemplate('c')" class="text-xs font-semibold py-2 px-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition text-center truncate">
+            C. お詫び・改善
+          </button>
+        </div>
+      </div>
+
+      <!-- Reply Text Area -->
+      <div class="mb-6">
+        <label class="block text-xs font-bold text-slate-700 mb-1">Googleマップに投稿する返信文</label>
+        <textarea id="reply-text" rows="7" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-4 text-sm text-slate-800 leading-relaxed focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="返信文を入力または上のAI案から挿入してください..."></textarea>
+        <div class="flex justify-between items-center mt-1 text-[11px] text-slate-400">
+          <span>※店主様のお名前や店舗のこだわりを自由に追記できます。</span>
+          <span id="char-count">0 文字</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="space-y-3">
+        <button onclick="submitReply()" id="submit-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-6 rounded-2xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
+          <span>🚀</span> この内容でGoogleマップに返信する
+        </button>
+        <a href="/dashboard.html" class="block text-center text-xs text-slate-400 hover:text-slate-600 font-medium py-1">
+          キャンセルして管理画面に戻る
+        </a>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Complete Modal -->
+  <div id="modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-slate-200">
+      <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+        ✓
+      </div>
+      <h3 class="text-lg font-black text-slate-900 mb-2">返信が完了しました！</h3>
+      <p class="text-xs text-slate-600 mb-6 leading-relaxed">
+        Googleマップの口コミへ返信文が正常に投稿されました。反映には数分かかる場合があります。
+      </p>
+      <a href="/dashboard.html" class="block w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition text-sm">
+        管理画面へ戻る
+      </a>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="py-6 text-center text-xs text-slate-400 border-t border-slate-200 bg-white">
+    <p>&copy; 2026 ReviewPilot. All rights reserved.</p>
+  </footer>
+
+  <script>
+    const templates = {
+      a: "この度は当店をご利用いただき、また貴重なご意見をお寄せいただき誠にありがとうございます。お料理をお気に召していただけた一方で、お席の配置につきましてご不便とご窮屈な思いをおかけしてしまい申し訳ございませんでした。今後の店内のレイアウト改善の参考にさせていただきます。またのご来店を心よりお待ちしております。",
+      b: "ご来店いただきありがとうございました！お料理の味を褒めていただけてシェフも喜んでおります😊 お席の間隔について落ち着かなかったとのこと、大変申し訳ありませんでした。ゆったりお過ごしいただけるよう席配置を工夫してまいります。またのお越しをお待ちしております！",
+      c: "この度は当店へお越しいただき誠にありがとうございました。お料理をお楽しみいただけた反面、お席の間隔により落ち着いてお食事いただけなかった点、深くお詫び申し上げます。お客様に快適にお過ごしいただけるよう、テーブルの配置見直しと空間づくりの改善に努めてまいります。率直なご意見に感謝いたします。"
+    };
+
+    const textarea = document.getElementById('reply-text');
+    const countDisplay = document.getElementById('char-count');
+
+    // 初期値としてテンプレートCをセット
+    insertTemplate('c');
+
+    function insertTemplate(type) {
+      textarea.value = templates[type] || "";
+      updateCount();
+    }
+
+    textarea.addEventListener('input', updateCount);
+
+    function updateCount() {
+      countDisplay.innerText = `${textarea.value.length} 文字`;
+    }
+
+    function submitReply() {
+      if (!textarea.value.trim()) {
+        alert('返信文を入力してください。');
+        return;
+      }
+      const btn = document.getElementById('submit-btn');
+      btn.innerHTML = '<span>⏳</span> Googleマップへ送信中...';
+      btn.disabled = true;
+
+      setTimeout(() => {
+        document.getElementById('modal').classList.remove('hidden');
+      }, 800);
+    }
+  </script>
+
+</body>
+</html>

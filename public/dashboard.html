@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>店舗ダッシュボード | ReviewPilot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', 'Noto Sans JP', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- Top Navbar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-6">
+        <a href="/" class="flex items-center gap-2 font-black text-xl text-indigo-600">
+          <span class="text-2xl">✨</span> ReviewPilot
+        </a>
+        <span class="hidden sm:inline-block text-xs bg-slate-100 text-slate-600 font-bold px-2.5 py-1 rounded-md border border-slate-200">店舗管理画面</span>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 text-sm text-slate-600">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span class="font-bold text-slate-800">TRATTORIA SHIBUYA (渋谷店)</span>
+        </div>
+        <a href="/" class="text-xs text-slate-500 hover:text-slate-800 font-medium ml-2">ログアウト</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Dashboard Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
+
+    <!-- Status Overview Cards -->
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <span class="text-xs font-bold text-slate-400 uppercase">今月の新着口コミ</span>
+        <div class="flex items-baseline gap-2 mt-2">
+          <span class="text-3xl font-black text-slate-900">18</span>
+          <span class="text-xs font-bold text-emerald-600">件</span>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <span class="text-xs font-bold text-slate-400 uppercase">返信完了率</span>
+        <div class="flex items-baseline gap-2 mt-2">
+          <span class="text-3xl font-black text-indigo-600">100%</span>
+          <span class="text-xs font-bold text-slate-500">（全件返信済み）</span>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <span class="text-xs font-bold text-slate-400 uppercase">平均評価</span>
+        <div class="flex items-baseline gap-2 mt-2">
+          <span class="text-3xl font-black text-amber-500">★ 4.8</span>
+          <span class="text-xs font-bold text-slate-400">/ 5.0</span>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <span class="text-xs font-bold text-slate-400 uppercase">平均返信所要時間</span>
+        <div class="flex items-baseline gap-2 mt-2">
+          <span class="text-3xl font-black text-slate-900">2.4</span>
+          <span class="text-xs font-bold text-slate-500">分（1タップ返信）</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-8">
+      
+      <!-- Left 2 Cols: Review Management Table -->
+      <div class="lg:col-span-2 space-y-6">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h2 class="text-lg font-extrabold text-slate-900">受信した口コミと返信履歴</h2>
+              <p class="text-xs text-slate-500">Googleマップからリアルタイムで同期された口コミ一覧です。</p>
+            </div>
+            <button onclick="alert('最新の口コミを再取得しました！')" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 transition">🔄 今すぐ同期</button>
+          </div>
+
+          <!-- Review Item 1 -->
+          <div class="border-b border-slate-100 pb-5 mb-5">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-sm text-slate-900">田中 太郎 様</span>
+                <span class="text-amber-500 font-bold text-xs">★★★★★</span>
+              </div>
+              <span class="text-xs font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">返信完了 (パターンA)</span>
+            </div>
+            <p class="text-sm text-slate-700 mb-3 leading-relaxed">「ランチで訪問しました。カルボナーラがとても美味しかったです！店員さんの接客も心地よく、また利用したいと思います。」</p>
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-600">
+              <span class="font-bold text-indigo-600 block mb-1">💬 返信内容 (2026/08/26 14:10 投稿):</span>
+              「この度はご来店いただき誠にありがとうございました。カルボナーラをお気に召していただけて大変光栄です！次回はぜひディナーの限定メニューもお試しくださいませ。」
+            </div>
+          </div>
+
+          <!-- Review Item 2 -->
+          <div class="border-b border-slate-100 pb-5 mb-5">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-sm text-slate-900">佐藤 花子 様</span>
+                <span class="text-amber-500 font-bold text-xs">★★★★☆</span>
+              </div>
+              <span class="text-xs font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">返信完了 (パターンB)</span>
+            </div>
+            <p class="text-sm text-slate-700 mb-3 leading-relaxed">「ピザの生地がモチモチで最高でした！ただ少し混んでいて席に案内されるまで10分ほど待ちました。」</p>
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-600">
+              <span class="font-bold text-emerald-600 block mb-1">💬 返信内容 (2026/08/25 19:22 投稿):</span>
+              「嬉しいお言葉ありがとうございます！ピザを褒めていただきピカイチの笑顔になりました🍕 お待たせしてしまい申し訳ありませんでした。次回はスムーズにご案内できるよう準備してお待ちしております！」
+            </div>
+          </div>
+
+          <!-- Review Item 3 (Pending manual edit demo) -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-sm text-slate-900">鈴木 一郎 様</span>
+                <span class="text-amber-500 font-bold text-xs">★★☆☆☆</span>
+              </div>
+              <span class="text-xs font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">通知済み (未返信)</span>
+            </div>
+            <p class="text-sm text-slate-700 mb-3 leading-relaxed">「料理はおいしかったのですが、隣の席との間隔が狭くて少し落ち着かなかったです。」</p>
+            
+            <div class="flex items-center gap-2">
+              <a href="/reply.html" class="inline-flex items-center gap-1 text-xs font-bold bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition">
+                <span>✍️</span> 手動編集・返信画面を開く
+              </a>
+              <button onclick="alert('パターンAの返信をGoogleマップに投稿しました！')" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 transition">
+                パターンAで返信
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right 1 Col: Settings & Status -->
+      <div class="space-y-6">
+        
+        <!-- Google Account Connection -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <h3 class="text-sm font-extrabold text-slate-900 mb-3">Google連携設定</h3>
+          <div class="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl mb-4 text-xs text-emerald-800">
+            <span class="font-bold">✅ Googleビジネスプロフィール連携中</span>
+            <p class="mt-1 text-emerald-700">店舗ID: `locations/184920481920`</p>
+          </div>
+          <button onclick="alert('Googleアカウントとの再認証画面へ遷移します。')" class="w-full text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl border border-slate-300 transition">
+            連携アカウントの変更・再認証
+          </button>
+        </div>
+
+        <!-- Notification Settings -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <h3 class="text-sm font-extrabold text-slate-900 mb-4">通知先設定</h3>
+          
+          <div class="space-y-4 text-xs">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">通知メールアドレス</label>
+              <input type="email" value="owner@trattoria-shibuya.com" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div class="pt-2 border-t border-slate-100">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-bold text-slate-800">LINE公式アカウント通知</span>
+                <span class="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded text-[10px]">連携可能</span>
+              </div>
+              <p class="text-slate-500 text-[11px] mb-2">LINEで通知を受け取り、トーク画面から1タップ返信できます。</p>
+              <button onclick="alert('LINE公式アカウントの友だち追加・連携画面を開きます。')" class="w-full bg-[#06C755] hover:bg-[#05b34c] text-white font-bold py-2 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
+                <span>💬</span> LINEアカウントと連携する
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subscription Card -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-extrabold text-slate-900">ご契約プラン</h3>
+            <span class="text-[10px] font-extrabold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">無料体験中</span>
+          </div>
+          <p class="text-xs text-slate-600 mb-4">スタンダードプラン（月額 ¥3,000 / 税込）</p>
+          <p class="text-xs text-slate-400 mb-4">無料トライアル期間：あと 12 日間</p>
+          
+          <button onclick="alert('Stripe決済ポータルへ遷移します。')" class="w-full text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl shadow-sm transition">
+            お支払い方法の登録・変更 (Stripe)
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400">
+    <p>&copy; 2026 ReviewPilot. All rights reserved.</p>
+  </footer>
+
+</body>
+</html>
