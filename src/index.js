@@ -1,5 +1,5 @@
 /**
- * ReviewPilot - Cloudflare Workers Backend API
+ * らくらくクチコミ返信 (らくコミくん) - Cloudflare Workers Backend API
  */
 
 export default {
@@ -68,7 +68,7 @@ export default {
       return env.ASSETS.fetch(request);
     }
 
-    return new Response("ReviewPilot API Running", { status: 200 });
+    return new Response("らくらくクチコミ返信 (らくコミくん) API Running", { status: 200 });
   },
 
   // 5. 定期実行 Cron (新着差分巡回バックアップ)

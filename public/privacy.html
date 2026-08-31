@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>プライバシーポリシー | ReviewPilot (レビューパイロット)</title>
+  <title>プライバシーポリシー | らくらくクチコミ返信（らくコミくん）</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,7 +18,7 @@
   <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
       <a href="/" class="flex items-center gap-2 font-extrabold text-xl text-indigo-600">
-        <span class="text-2xl">✨</span> ReviewPilot
+        <span class="text-2xl">✨</span> らくらくクチコミ返信 <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold ml-1">らくコミくん</span>
       </a>
       <a href="/" class="text-sm font-medium text-slate-600 hover:text-indigo-600 transition">← トップページに戻る</a>
     </div>
@@ -35,7 +35,7 @@
         <section>
           <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-indigo-600 pl-3">1. はじめに</h2>
           <p>
-            ReviewPilot（以下「当サービス」）は、店舗運営者様（以下「ユーザー」）のプライバシーを尊重し、個人情報の保護に最大限の配慮を払っております。本プライバシーポリシーは、当サービスがどのような情報を収集し、それをどのように利用・管理・保護するかについて説明するものです。
+            らくらくクチコミ返信（らくコミくん）（以下「当サービス」）は、店舗運営者様（以下「ユーザー」）のプライバシーを尊重し、個人情報の保護に最大限の配慮を払っております。本プライバシーポリシーは、当サービスがどのような情報を収集し、それをどのように利用・管理・保護するかについて説明するものです。
           </p>
         </section>
 
@@ -45,7 +45,7 @@
           <ul class="list-disc list-inside space-y-1 pl-2 text-slate-600">
             <li><strong>アカウント情報:</strong> ユーザーの氏名、メールアドレス、連絡先情報</li>
             <li><strong>店舗情報:</strong> Googleビジネスプロフィール（旧Googleマイビジネス）に登録されている店舗名、住所、営業時間、店舗ID</li>
-            <li><strong>口コミ（レビュー）情報:</strong> Googleマップ上に一般公開されているレビュー本文、評価（星の数）、投稿日時、投稿者表示名</li>
+            <li><strong>クチコミ（レビュー）情報:</strong> Googleマップ上に一般公開されているレビュー本文、評価（星の数）、投稿日時、投稿者表示名</li>
             <li><strong>OAuth認証情報:</strong> Google APIへの安全なアクセスのための認証トークン（アクセストークンおよびリフレッシュトークン）</li>
             <li><strong>決済情報:</strong> Stripe決済サービスを通じて処理される課金情報（クレジットカード番号自体は当サービス側では保持しません）</li>
           </ul>
@@ -57,7 +57,7 @@
             当サービスによるGoogle APIから取得した情報の使用および他のアプリへの転送は、<a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" class="text-indigo-600 underline font-semibold">Google API サービスのユーザーデータに関するポリシー</a>（限定使用要件を含む）に準拠します。
           </p>
           <ul class="list-disc list-inside space-y-2 text-indigo-900/90">
-            <li><strong>利用目的の限定:</strong> 取得したGoogleユーザーデータは、ユーザーが指定した店舗の新着口コミの検知、AIによる返信案の作成提示、およびユーザー自身が選択・承認した返信文のGoogleマップへの代理投稿機能にのみ利用します。</li>
+            <li><strong>利用目的の限定:</strong> 取得したGoogleユーザーデータは、ユーザーが指定した店舗の新着クチコミの検知、AIによる返信案の作成提示、およびユーザー自身が選択・承認した返信文のGoogleマップへの代理投稿機能にのみ利用します。</li>
             <li><strong>第三者提供の禁止:</strong> Googleユーザーデータを広告ネットワーク、データブローカー、その他の第三者に販売・提供することは一切ありません。</li>
             <li><strong>AIモデルの学習への不使用:</strong> ユーザーの個人情報やプライベートなデータを、基盤AIモデルの再学習や改善のために使用することはありません。</li>
             <li><strong>人間の閲覧制限:</strong> ユーザーデータを当サービスの従業員が閲覧することはありません（ユーザーからの明確な同意・サポート依頼がある場合、または法的な要請がある場合を除く）。</li>
@@ -68,9 +68,9 @@
           <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-indigo-600 pl-3">4. 情報の利用目的</h2>
           <p class="mb-2">収集した情報は、以下の目的のためにのみ利用されます：</p>
           <ul class="list-disc list-inside space-y-1 pl-2 text-slate-600">
-            <li>Googleマップ上の新着口コミのリアルタイム検知および通知メールの送信</li>
+            <li>Googleマップ上の新着クチコミのリアルタイム検知および通知メールの送信</li>
             <li>生成AIを用いた返信文案の生成および提供</li>
-            <li>ユーザーの指示に基づくGoogleマップへの口コミ返信の実行</li>
+            <li>ユーザーの指示に基づくGoogleマップへのクチコミ返信の実行</li>
             <li>サービス利用料金の請求および決済管理</li>
             <li>システム障害対応、セキュリティ維持、カスタマーサポート対応</li>
           </ul>
@@ -89,7 +89,7 @@
             ユーザーは、いつでも当サービスとのGoogleアカウント連携を解除し、保管データの削除を請求することができます：
           </p>
           <ul class="list-disc list-inside space-y-1 pl-2 text-slate-600">
-            <li><strong>Googleアカウントからのアクセス権取り消し:</strong> <a href="https://myaccount.google.com/permissions" target="_blank" class="text-indigo-600 underline">Google アカウントのセキュリティ設定</a> から、いつでもReviewPilotのアクセス権を取り消すことができます。</li>
+            <li><strong>Googleアカウントからのアクセス権取り消し:</strong> <a href="https://myaccount.google.com/permissions" target="_blank" class="text-indigo-600 underline">Google アカウントのセキュリティ設定</a> から、いつでも本サービスのアクセス権を取り消すことができます。</li>
             <li><strong>データの完全削除請求:</strong> サービス解約時、または下記のお問い合わせ窓口にご連絡いただくことで、データベース上に保存されている店舗データ・認証情報を完全に削除いたします。</li>
           </ul>
         </section>
@@ -98,7 +98,7 @@
           <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-indigo-600 pl-3">7. お問い合わせ窓口</h2>
           <p class="mb-2">本プライバシーポリシーに関するご質問、データの削除要請、個人情報の取り扱いに関するご相談は、下記までお問い合わせください。</p>
           <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-slate-700">
-            <p><strong>サービス運営:</strong> ReviewPilot 運営事務局</p>
+            <p><strong>サービス運営:</strong> らくらくクチコミ返信（らくコミくん） 運営事務局</p>
             <p><strong>お問い合わせ先メール:</strong> support@reviewpilot.pages.dev</p>
           </div>
         </section>
@@ -109,7 +109,7 @@
 
   <!-- Footer -->
   <footer class="border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-500">
-    <p>&copy; 2026 ReviewPilot. All rights reserved.</p>
+    <p>&copy; 2026 らくらくクチコミ返信（らくコミくん）. All rights reserved.</p>
   </footer>
 
 </body>
