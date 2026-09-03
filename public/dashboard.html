@@ -37,6 +37,18 @@
   <!-- Dashboard Container -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
 
+    <!-- Checkout Success Notification Banner (URL checkout=success で表示) -->
+    <div id="checkoutSuccessBanner" class="hidden mb-8 bg-emerald-50 border-2 border-emerald-300 p-5 rounded-2xl shadow-sm flex items-center justify-between gap-4 animate-fade-in">
+      <div class="flex items-center gap-3">
+        <span class="text-3xl">🎉</span>
+        <div>
+          <h3 class="text-sm font-black text-emerald-900">14日間の無料トライアル登録が完了しました！</h3>
+          <p class="text-xs text-emerald-700 font-medium mt-0.5">本日より14日間は完全無料（0円）で全機能をご利用いただけます。期間中のお支払い方法変更や解約はいつでも可能です。</p>
+        </div>
+      </div>
+      <button onclick="document.getElementById('checkoutSuccessBanner').classList.add('hidden')" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-100 hover:bg-emerald-200 px-3 py-1.5 rounded-xl transition">閉じる</button>
+    </div>
+
     <!-- Status Overview Cards -->
     <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -199,18 +211,24 @@
           </div>
         </div>
 
-        <!-- Subscription Card -->
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <!-- Subscription Card (Stripe連携) -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6" id="subscriptionCard">
           <div class="flex items-center justify-between mb-2">
             <h3 class="text-sm font-extrabold text-slate-900">ご契約プラン</h3>
-            <span class="text-[10px] font-extrabold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">無料体験中</span>
+            <span id="subStatusBadge" class="text-[10px] font-extrabold bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full">14日間無料体験中</span>
           </div>
-          <p class="text-xs text-slate-600 mb-4">スタンダードプラン（月額 ¥3,000 / 税込）</p>
-          <p class="text-xs text-slate-400 mb-4">無料トライアル期間：あと 12 日間</p>
+          <p class="text-xs text-slate-700 font-bold mb-1">スタンダードプラン（月額 ¥3,000 / 税込）</p>
+          <p id="trialDaysText" class="text-xs text-slate-500 mb-4">無料トライアル期間：あと 14 日間（自動更新）</p>
           
-          <button onclick="alert('Stripe決済ポータルへ遷移します。')" class="w-full text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl shadow-sm transition">
-            お支払い方法の登録・変更 (Stripe)
-          </button>
+          <div class="space-y-2.5">
+            <button id="startCheckoutBtn" onclick="startStripeCheckout()" class="w-full text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-1.5 transform hover:-translate-y-0.5">
+              <span>💳</span> 14日間無料トライアルに登録 (Stripe)
+            </button>
+            <button id="openPortalBtn" onclick="openStripePortal()" class="w-full text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl border border-slate-200 transition flex items-center justify-center gap-1.5">
+              <span>⚙️</span> お支払い方法の変更・解約・領収書
+            </button>
+          </div>
+          <p class="text-[10px] text-slate-400 mt-3 text-center">※世界標準のStripe安全暗号化決済を利用しています</p>
         </div>
 
       </div>
@@ -223,6 +241,98 @@
   <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400">
     <p>&copy; 2026 らくらくクチコミ返信（らくコミくん）. All rights reserved.</p>
   </footer>
+
+  <!-- Stripe Checkout & Customer Portal Logic -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const checkoutStatus = params.get('checkout');
+      
+      if (checkoutStatus === 'success') {
+        const banner = document.getElementById('checkoutSuccessBanner');
+        if (banner) banner.classList.remove('hidden');
+        localStorage.setItem('rakukomi_subscribed', 'true');
+      } else if (checkoutStatus === 'canceled') {
+        alert('お支払いの手続きがキャンセルされました。いつでも再度お試しいただけます。');
+      }
+
+      // 登録完了後のUI調整
+      if (localStorage.getItem('rakukomi_subscribed') === 'true') {
+        const badge = document.getElementById('subStatusBadge');
+        if (badge) {
+          badge.className = 'text-[10px] font-extrabold bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full';
+          badge.textContent = '無料体験 登録済み (Stripe)';
+        }
+        const trialText = document.getElementById('trialDaysText');
+        if (trialText) {
+          trialText.textContent = '14日後に初回の月額課金が開始されます（いつでも解約可能）';
+        }
+        const startBtn = document.getElementById('startCheckoutBtn');
+        if (startBtn) {
+          startBtn.classList.add('hidden');
+        }
+      }
+    });
+
+    async function startStripeCheckout() {
+      const btn = document.getElementById('startCheckoutBtn');
+      const origText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳</span> Stripe決済画面を開いています...';
+
+      try {
+        const emailInput = document.querySelector('input[type="email"]');
+        const customerEmail = emailInput ? emailInput.value : 'owner@trattoria-shibuya.com';
+
+        const res = await fetch('/api/stripe/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ customerEmail })
+        });
+        const data = await res.json();
+        
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          alert('決済画面の生成に失敗しました: ' + (data.error || '不明なエラー'));
+          btn.disabled = false;
+          btn.innerHTML = origText;
+        }
+      } catch (err) {
+        alert('通信エラーが発生しました: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = origText;
+      }
+    }
+
+    async function openStripePortal() {
+      const btn = document.getElementById('openPortalBtn');
+      const origText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳</span> ポータル画面を開いています...';
+
+      try {
+        const res = await fetch('/api/stripe/create-portal-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          alert('お知らせ: ' + (data.error || 'カスタマーポータルを開けませんでした。先にお支払い登録を行ってください。'));
+          btn.disabled = false;
+          btn.innerHTML = origText;
+        }
+      } catch (err) {
+        alert('通信エラーが発生しました: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = origText;
+      }
+    }
+  </script>
 
 </body>
 </html>

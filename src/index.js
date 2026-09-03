@@ -55,12 +55,70 @@ export default {
     if (url.pathname === '/api/webhook/google-pubsub' && request.method === 'POST') {
       try {
         const message = await request.json();
-        // Pub/Subメッセージの解析と処理
         ctx.waitUntil(handlePubSubNotification(env, message));
         return new Response(JSON.stringify({ status: 'ok' }), { headers: { 'Content-Type': 'application/json' } });
       } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 400 });
       }
+    }
+
+    // 4. API: Stripe Checkout セッション作成 (14日間無料トライアル)
+    if (url.pathname === '/api/stripe/create-checkout-session' && request.method === 'POST') {
+      try {
+        let body = {};
+        try { body = await request.json(); } catch (e) {}
+        const result = await createStripeCheckoutSession(env, url.origin, body);
+        return new Response(JSON.stringify(result), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ success: false, error: err.message }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      }
+    }
+
+    // 5. API: Stripe カスタマーポータル セッション作成 (解約・カード変更・領収書)
+    if (url.pathname === '/api/stripe/create-portal-session' && request.method === 'POST') {
+      try {
+        let body = {};
+        try { body = await request.json(); } catch (e) {}
+        const result = await createStripePortalSession(env, url.origin, body);
+        return new Response(JSON.stringify(result), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ success: false, error: err.message }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      }
+    }
+
+    // 6. API: Stripe Webhook (決済・定期課金・解約の自動検知)
+    if (url.pathname === '/api/stripe/webhook' && request.method === 'POST') {
+      try {
+        const rawBody = await request.text();
+        const sig = request.headers.get('stripe-signature');
+        const result = await handleStripeWebhook(env, rawBody, sig);
+        return new Response(JSON.stringify({ received: true }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } catch (err) {
+        return new Response(`Webhook Error: ${err.message}`, { status: 400 });
+      }
+    }
+
+    // 7. API: Stripe 設定状態確認
+    if (url.pathname === '/api/stripe/config') {
+      return new Response(JSON.stringify({
+        hasSecretKey: !!env.STRIPE_SECRET_KEY,
+        hasPriceId: !!env.STRIPE_PRICE_ID,
+        publishableKey: env.STRIPE_PUBLISHABLE_KEY || null
+      }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+      });
     }
 
     // 4. 静的アセット（フロントエンド HTML/CSS/JS）へのフォールスルー
@@ -196,4 +254,160 @@ async function handlePubSubNotification(env, message) {
 
 async function pollNewReviews(env) {
   // 定期巡回処理
+}
+
+/**
+ * Stripe REST API Helper (Form URL-encoded POST)
+ */
+async function stripePost(secretKey, endpoint, params) {
+  const form = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null) {
+      form.append(key, value);
+    }
+  }
+  const res = await fetch(`https://api.stripe.com/v1/${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${secretKey}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: form.toString()
+  });
+  return await res.json();
+}
+
+/**
+ * Stripe Checkout Session 作成 (14日間無料トライアル)
+ */
+async function createStripeCheckoutSession(env, origin, { customerEmail, customerId }) {
+  const secretKey = env.STRIPE_SECRET_KEY;
+  const priceId = env.STRIPE_PRICE_ID;
+  if (!secretKey || !priceId) {
+    throw new Error("Stripe シークレットキーまたは価格IDが設定されていません。");
+  }
+
+  const params = {
+    'mode': 'subscription',
+    'payment_method_types[0]': 'card',
+    'line_items[0][price]': priceId,
+    'line_items[0][quantity]': '1',
+    'subscription_data[trial_period_days]': '14',
+    'success_url': `${origin}/dashboard.html?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+    'cancel_url': `${origin}/dashboard.html?checkout=canceled`,
+    'allow_promotion_codes': 'true'
+  };
+
+  if (customerId) {
+    params['customer'] = customerId;
+  } else if (customerEmail) {
+    params['customer_email'] = customerEmail;
+  }
+
+  const session = await stripePost(secretKey, 'checkout/sessions', params);
+  if (session.error) {
+    throw new Error(session.error.message);
+  }
+
+  return { success: true, url: session.url, id: session.id };
+}
+
+/**
+ * Stripe Customer Portal Session 作成 (解約・カード変更・領収書)
+ */
+async function createStripePortalSession(env, origin, { customerId }) {
+  const secretKey = env.STRIPE_SECRET_KEY;
+  if (!secretKey) throw new Error("Stripe シークレットキーが設定されていません。");
+
+  let targetCustomer = customerId;
+  if (!targetCustomer) {
+    // 顧客IDが指定されていない場合、直近の顧客を自動検索
+    const listRes = await fetch('https://api.stripe.com/v1/customers?limit=1', {
+      headers: { 'Authorization': `Bearer ${secretKey}` }
+    });
+    const listData = await listRes.json();
+    if (listData.data && listData.data.length > 0) {
+      targetCustomer = listData.data[0].id;
+    } else {
+      throw new Error("有効なお客様情報が見つかりませんでした。先にお支払い登録をお済ませください。");
+    }
+  }
+
+  const params = {
+    'customer': targetCustomer,
+    'return_url': `${origin}/dashboard.html`
+  };
+
+  const portal = await stripePost(secretKey, 'billing_portal/sessions', params);
+  if (portal.error) {
+    throw new Error(portal.error.message);
+  }
+
+  return { success: true, url: portal.url };
+}
+
+/**
+ * Stripe Webhook イベント処理
+ */
+async function handleStripeWebhook(env, rawBody, sig) {
+  let event;
+  try {
+    event = JSON.parse(rawBody);
+  } catch (e) {
+    throw new Error("Invalid JSON payload");
+  }
+
+  switch (event.type) {
+    case 'checkout.session.completed': {
+      const session = event.data.object;
+      const customerId = session.customer;
+      const subscriptionId = session.subscription;
+      const customerEmail = session.customer_details?.email || session.customer_email;
+      
+      if (env.DB) {
+        try {
+          await env.DB.prepare(`
+            UPDATE users 
+            SET stripe_customer_id = ?, stripe_subscription_id = ?, subscription_status = 'trialing', updated_at = CURRENT_TIMESTAMP
+            WHERE email = ?
+          `).bind(customerId, subscriptionId, customerEmail).run();
+        } catch (dbErr) {
+          console.error("DB update error:", dbErr);
+        }
+      }
+      break;
+    }
+    case 'customer.subscription.updated': {
+      const sub = event.data.object;
+      if (env.DB) {
+        try {
+          await env.DB.prepare(`
+            UPDATE users 
+            SET subscription_status = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE stripe_subscription_id = ?
+          `).bind(sub.status, sub.id).run();
+        } catch (dbErr) {
+          console.error("DB update error:", dbErr);
+        }
+      }
+      break;
+    }
+    case 'customer.subscription.deleted': {
+      const sub = event.data.object;
+      if (env.DB) {
+        try {
+          await env.DB.prepare(`
+            UPDATE users 
+            SET subscription_status = 'canceled', updated_at = CURRENT_TIMESTAMP
+            WHERE stripe_subscription_id = ?
+          `).bind(sub.id).run();
+        } catch (dbErr) {
+          console.error("DB update error:", dbErr);
+        }
+      }
+      break;
+    }
+  }
+
+  return { success: true };
 }

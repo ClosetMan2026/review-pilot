@@ -7,10 +7,19 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"
   },
-  "keywords": ["cloudflare", "workers", "gemini", "google-business-profile", "saas"],
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "gemini",
+    "google-business-profile",
+    "saas"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "wrangler": "^3.100.0"
+  },
+  "dependencies": {
+    "stripe": "^22.6.1"
   }
 }
