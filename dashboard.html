@@ -14,35 +14,87 @@
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col">
 
-  <!-- Top Navbar (スマホ完全最適化) -->
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
-      <div class="flex items-center gap-2 sm:gap-4 min-w-0">
-        <a href="/" class="flex items-center gap-1.5 sm:gap-2 font-black text-base sm:text-xl text-indigo-600 truncate">
-          <span class="text-xl sm:text-2xl shrink-0">✨</span>
-          <span class="truncate">らくらくクチコミ返信</span>
-          <span class="text-[10px] sm:text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold shrink-0">らくコミくん</span>
+  <!-- ==================== 1. Login View (未ログイン画面) ==================== -->
+  <div id="loginView" class="hidden min-h-screen flex flex-col justify-center items-center px-4 py-12 bg-slate-50">
+    <div class="max-w-md w-full bg-white rounded-3xl border border-slate-200 shadow-xl p-6 sm:p-8 text-center animate-fade-in">
+      
+      <!-- Brand Logo -->
+      <a href="/" class="inline-flex items-center gap-2 mb-6">
+        <span class="text-3xl">✨</span>
+        <span class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">らくらくクチコミ返信</span>
+        <span class="text-[10px] sm:text-xs font-black text-indigo-600 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-full">らくコミくん</span>
+      </a>
+
+      <h1 class="text-lg sm:text-xl font-extrabold text-slate-900 mb-2">店舗管理画面へログイン</h1>
+      <p class="text-xs text-slate-500 mb-8 leading-relaxed">
+        Googleビジネスプロフィールと連携して、Googleマップのクチコミ自動検知・AI返信を始めましょう。
+      </p>
+
+      <!-- Sign in with Google Button (Google公式スタイル準拠) -->
+      <button onclick="loginUser('google')" class="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-50 text-slate-700 font-bold py-3.5 px-4 rounded-2xl border-2 border-slate-200 hover:border-slate-300 shadow-sm hover:shadow transition transform hover:-translate-y-0.5 mb-3.5">
+        <!-- Google "G" Logo SVG -->
+        <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+        </svg>
+        <span class="text-sm">Google でログイン</span>
+      </button>
+
+      <!-- Demo Login Option -->
+      <button onclick="loginUser('demo')" class="w-full text-xs font-bold text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-slate-200 py-3 rounded-2xl transition mb-6">
+        <span>👀</span> デモ店舗（渋谷店）として管理画面を確認する
+      </button>
+
+      <div class="border-t border-slate-100 pt-5 text-xs text-slate-400">
+        <p>アカウントをお持ちでない店舗様はこちら</p>
+        <a href="/#pricing" class="font-bold text-indigo-600 hover:underline inline-block mt-1">
+          14日間無料トライアルに申し込む →
         </a>
-        <span class="hidden md:inline-block text-xs bg-slate-100 text-slate-600 font-bold px-2.5 py-1 rounded-md border border-slate-200 shrink-0">店舗管理画面</span>
       </div>
 
-      <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-        <div class="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-          <span class="font-bold text-slate-800 max-w-[90px] sm:max-w-[160px] truncate">渋谷店</span>
-        </div>
-        <a href="/" class="text-xs text-slate-500 hover:text-slate-800 font-bold bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg transition shrink-0">
-          ログアウト
+      <div class="mt-6">
+        <a href="/" class="text-xs text-slate-400 hover:text-slate-600 transition">
+          ← トップページに戻る
         </a>
       </div>
+
     </div>
-  </header>
+  </div>
 
-  <!-- Dashboard Container -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-8">
+  <!-- ==================== 2. Dashboard View (ログイン後画面) ==================== -->
+  <div id="dashboardView" class="min-h-screen flex flex-col">
 
-    <!-- Checkout Success Notification Banner (URL checkout=success で表示) -->
-    <div id="checkoutSuccessBanner" class="hidden mb-5 sm:mb-8 bg-emerald-50 border-2 border-emerald-300 p-4 sm:p-5 rounded-xl sm:rounded-2xl shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 animate-fade-in">
+    <!-- Top Navbar (スマホ完全最適化) -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+      <div class="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 sm:gap-4 min-w-0">
+          <a href="/" class="flex items-center gap-1.5 sm:gap-2 font-black text-base sm:text-xl text-indigo-600 truncate">
+            <span class="text-xl sm:text-2xl shrink-0">✨</span>
+            <span class="truncate">らくらくクチコミ返信</span>
+            <span class="text-[10px] sm:text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold shrink-0">らくコミくん</span>
+          </a>
+          <span class="hidden md:inline-block text-xs bg-slate-100 text-slate-600 font-bold px-2.5 py-1 rounded-md border border-slate-200 shrink-0">店舗管理画面</span>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div class="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+            <span class="font-bold text-slate-800 max-w-[90px] sm:max-w-[160px] truncate">渋谷店</span>
+          </div>
+          <button onclick="logoutUser()" class="text-xs text-slate-500 hover:text-red-600 font-bold bg-slate-100 hover:bg-red-50 px-2.5 py-1.5 rounded-lg transition shrink-0">
+            ログアウト
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Dashboard Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-8">
+
+      <!-- Checkout Success Notification Banner (URL checkout=success で表示) -->
+      <div id="checkoutSuccessBanner" class="hidden mb-5 sm:mb-8 bg-emerald-50 border-2 border-emerald-300 p-4 sm:p-5 rounded-xl sm:rounded-2xl shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 animate-fade-in">
       <div class="flex items-start sm:items-center gap-3">
         <span class="text-2xl sm:text-3xl shrink-0">🎉</span>
         <div>
@@ -233,15 +285,9 @@
               <input type="email" value="owner@trattoria-shibuya.com" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
             </div>
 
-            <div class="pt-2 border-t border-slate-100">
-              <div class="flex items-center justify-between mb-1">
-                <span class="font-bold text-slate-800">LINE公式アカウント通知</span>
-                <span class="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded text-[10px]">連携可能</span>
-              </div>
-              <p class="text-slate-500 text-[11px] mb-2 leading-relaxed">LINEで通知を受け取り、トーク画面から1タップ返信できます。</p>
-              <button onclick="alert('LINE公式アカウントの友だち追加・連携画面を開きます。')" class="w-full bg-[#06C755] hover:bg-[#05b34c] text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-sm">
-                <span>💬</span> LINEアカウントと連携する
-              </button>
+            <div class="pt-2 border-t border-slate-100 text-slate-500 text-[11px] leading-relaxed">
+              <span class="font-bold text-slate-700 block mb-0.5">💡 メール通知について</span>
+              Googleマップに新着クチコミが投稿されると、上記メール宛てにAIが作成した3つの返信案が届きます。メール内のボタンを1タップするだけで自動返信が完了します。
             </div>
           </div>
         </div>
@@ -257,8 +303,40 @@
     <p>&copy; 2026 らくらくクチコミ返信（らくコミくん）. All rights reserved.</p>
   </footer>
 
-  <!-- Stripe Checkout & Customer Portal & Mobile Tab Logic -->
+  </div> <!-- End #dashboardView -->
+
+  <!-- Stripe Checkout & Customer Portal & Mobile Tab & Auth Logic -->
   <script>
+    // 認証状態の判定と画面切り替え
+    function checkAuthState() {
+      // 初期状態またはログアウト後は未ログイン画面を表示
+      const isLoggedIn = localStorage.getItem('rakukomi_logged_in') === 'true';
+      const loginView = document.getElementById('loginView');
+      const dashboardView = document.getElementById('dashboardView');
+
+      if (isLoggedIn) {
+        if (loginView) loginView.classList.add('hidden');
+        if (dashboardView) dashboardView.classList.remove('hidden');
+      } else {
+        if (loginView) loginView.classList.remove('hidden');
+        if (dashboardView) dashboardView.classList.add('hidden');
+      }
+    }
+
+    // ログイン処理（Googleまたはデモ）
+    function loginUser(mode) {
+      localStorage.setItem('rakukomi_logged_in', 'true');
+      checkAuthState();
+    }
+
+    // ログアウト処理
+    function logoutUser() {
+      if (confirm('店舗管理画面からログアウトしますか？')) {
+        localStorage.removeItem('rakukomi_logged_in');
+        checkAuthState();
+      }
+    }
+
     // スマホ用タブ切り替え（クチコミ返信 vs ご契約プラン・設定）
     function switchMobileTab(tab) {
       const reviewsEl = document.getElementById('reviewsContainer');
@@ -286,7 +364,13 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      // 認証判定
       const params = new URLSearchParams(window.location.search);
+      if (params.get('login') === 'true' || params.get('checkout') === 'success') {
+        localStorage.setItem('rakukomi_logged_in', 'true');
+      }
+      checkAuthState();
+
       const checkoutStatus = params.get('checkout');
       const activeTab = params.get('tab');
       
