@@ -39,45 +39,60 @@
 
       <h1 class="text-lg sm:text-xl font-extrabold text-slate-900 mb-2">店舗管理画面へログイン</h1>
       <p class="text-xs text-slate-500 mb-6 leading-relaxed">
-        Googleビジネスプロフィールと連携して、Googleマップのクチコミ自動検知・AI返信を始めましょう。
+        Googleビジネスプロフィールのクチコミ自動検知・AI返信ダッシュボードです。
       </p>
 
       <form id="loginForm" onsubmit="handleLoginSubmit(event)" class="space-y-4 mb-5 text-left">
-        <div id="loginErrorMsg" class="hidden p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-bold leading-relaxed"></div>
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">メールアドレス</label>
-          <input type="email" id="loginEmail" required placeholder="owner@trattoria-shibuya.com" value="owner@trattoria-shibuya.com" class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 transition">
+        <div id="loginErrorMsg" class="hidden p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-bold leading-relaxed flex items-center gap-2">
+          <span>⚠️</span>
+          <span id="loginErrorText"></span>
         </div>
+
         <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">パスワード</label>
-          <input type="password" id="loginPassword" required placeholder="••••••••" value="password123" class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 transition">
+          <label for="loginEmail" class="block text-xs font-bold text-slate-700 mb-1">ご登録メールアドレス</label>
+          <input type="email" id="loginEmail" required placeholder="owner@your-store.com" autocomplete="email" class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 transition">
         </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="loginPassword" class="block text-xs font-bold text-slate-700">パスワード</label>
+            <a href="mailto:support@review-pilot.example.com?subject=パスワード再設定の問い合わせ" class="text-[11px] text-indigo-600 hover:underline font-medium">
+              お困りの場合
+            </a>
+          </div>
+          <div class="relative">
+            <input type="password" id="loginPassword" required placeholder="半角英数字8文字以上" autocomplete="current-password" class="w-full px-3.5 py-2.5 pr-10 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 transition">
+            <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-slate-600 transition text-sm">
+              <span id="passwordToggleIcon">👁️</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-1">
+          <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+            <input type="checkbox" id="rememberMe" checked class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+            <span>ログイン状態を保持する</span>
+          </label>
+        </div>
+
         <button type="submit" id="loginSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl text-xs shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
           <span>店舗管理画面にログイン →</span>
         </button>
       </form>
 
-      <div class="relative flex items-center justify-center my-4">
-        <div class="border-t border-slate-200 w-full"></div>
-        <span class="bg-white px-3 text-[11px] font-bold text-slate-400 absolute">または</span>
-      </div>
-
-      <!-- Demo Login Option -->
-      <button type="button" onclick="loginDemoUser()" class="w-full text-xs font-bold text-slate-700 hover:text-indigo-600 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-xl transition mb-4 flex items-center justify-center gap-1.5">
-        <span>👀</span> 渋谷店デモとしてワンタップログイン
-      </button>
-
-      <div class="border-t border-slate-100 pt-5 text-xs text-slate-400">
+      <div class="border-t border-slate-100 pt-5 text-xs text-slate-500 space-y-2">
         <p>アカウントをお持ちでない店舗様はこちら</p>
-        <a href="/#pricing" class="font-bold text-indigo-600 hover:underline inline-block mt-1">
+        <a href="/#pricing" class="font-bold text-indigo-600 hover:underline inline-block">
           14日間無料トライアルに申し込む →
         </a>
       </div>
 
-      <div class="mt-6">
-        <a href="/" class="text-xs text-slate-400 hover:text-slate-600 transition inline-flex items-center gap-1">
-          <span>←</span> トップページに戻る
-        </a>
+      <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-center gap-4 text-[11px] text-slate-400">
+        <a href="/tokushoho.html" class="hover:text-slate-600 transition hover:underline">特定商取引法に基づく表記</a>
+        <span>•</span>
+        <a href="/terms.html" class="hover:text-slate-600 transition hover:underline">利用規約</a>
+        <span>•</span>
+        <a href="/" class="hover:text-slate-600 transition hover:underline">トップページ</a>
       </div>
 
     </div>
@@ -969,17 +984,19 @@
 
         if (res.ok && data.success) {
           localStorage.setItem('rakukomi_logged_in', 'true');
-          showToast('ログインしました！', 'success');
+          showToast('ログインしました！店舗管理画面を表示します。✨', 'success');
           await checkAuthState();
         } else {
           if (errorMsg) {
-            errorMsg.innerText = data.error || 'メールアドレスまたはパスワードが正しくありません。';
+            const errText = document.getElementById('loginErrorText');
+            if (errText) errText.innerText = data.error || 'メールアドレスまたはパスワードが正しくありません。';
             errorMsg.classList.remove('hidden');
           }
         }
       } catch (err) {
         if (errorMsg) {
-          errorMsg.innerText = '通信エラーが発生しました: ' + err.message;
+          const errText = document.getElementById('loginErrorText');
+          if (errText) errText.innerText = '通信エラーが発生しました: ' + err.message;
           errorMsg.classList.remove('hidden');
         }
       } finally {
@@ -990,12 +1007,17 @@
       }
     }
 
-    async function loginDemoUser() {
-      const emailInput = document.getElementById('loginEmail');
-      const passwordInput = document.getElementById('loginPassword');
-      if (emailInput) emailInput.value = 'owner@trattoria-shibuya.com';
-      if (passwordInput) passwordInput.value = 'password123';
-      await handleLoginSubmit();
+    function togglePasswordVisibility() {
+      const pwd = document.getElementById('loginPassword');
+      const icon = document.getElementById('passwordToggleIcon');
+      if (!pwd) return;
+      if (pwd.type === 'password') {
+        pwd.type = 'text';
+        if (icon) icon.innerText = '🙈';
+      } else {
+        pwd.type = 'password';
+        if (icon) icon.innerText = '👁️';
+      }
     }
 
     // =========================================================================
