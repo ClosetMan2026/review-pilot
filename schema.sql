@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS locations (
     location_name TEXT NOT NULL, -- 店舗表示名 (e.g. TRATTORIA SHIBUYA)
     category TEXT, -- 業種 (e.g. イタリアンレストラン, 美容室)
     address TEXT,
+    auto_reply BOOLEAN DEFAULT 0,
+    ai_tone TEXT DEFAULT 'polite', -- polite (丁寧・王道), friendly (親しみ・フレンドリー), luxury (高級感・格調高い)
     google_access_token TEXT,
     google_refresh_token TEXT,
     token_expires_at TIMESTAMP,

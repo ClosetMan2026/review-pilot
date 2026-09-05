@@ -55,6 +55,7 @@ INSERT OR REPLACE INTO sessions (
 -- 3. 店舗データ (locations)
 INSERT OR REPLACE INTO locations (
     id, user_id, account_id, location_name, category, address,
+    auto_reply, ai_tone,
     google_access_token, google_refresh_token, token_expires_at, pubsub_subscribed
 ) VALUES 
 (
@@ -64,6 +65,8 @@ INSERT OR REPLACE INTO locations (
     'TRATTORIA SHIBUYA (渋谷店)',
     'イタリアンレストラン',
     '東京都渋谷区宇田川町12-3',
+    0,
+    'polite',
     'ya29.demo_token_shibuya',
     '1//demo_refresh_shibuya',
     datetime('now', '+30 days'),
@@ -76,6 +79,8 @@ INSERT OR REPLACE INTO locations (
     'BISTRO SHINJUKU (新宿店)',
     'フランス料理店',
     '東京都新宿区新宿3-1-1',
+    1,
+    'friendly',
     'ya29.demo_token_shinjuku',
     '1//demo_refresh_shinjuku',
     datetime('now', '+30 days'),

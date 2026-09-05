@@ -20,7 +20,7 @@
       <div class="flex items-center gap-2 font-black text-indigo-600">
         <span>✨</span> らくらくクチコミ返信 <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold ml-1">らくコミくん</span>
       </div>
-      <span class="text-xs text-slate-500 font-medium">TRATTORIA SHIBUYA (渋谷店)</span>
+      <span id="header-store-name" class="text-xs text-slate-500 font-medium">店舗管理画面</span>
     </div>
   </header>
 
@@ -38,27 +38,30 @@
       <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-6">
         <div class="flex items-center justify-between mb-1">
           <div class="flex items-center gap-2">
-            <span class="font-bold text-sm text-slate-900">鈴木 一郎 様のクチコミ</span>
-            <span class="text-amber-500 text-xs font-bold">★★☆☆☆</span>
+            <span class="font-bold text-sm text-slate-900" id="reviewer-name">クチコミを読み込み中...</span>
+            <span class="text-amber-500 text-xs font-bold" id="review-stars">★★★★★</span>
           </div>
-          <span class="text-xs text-slate-400">10分前</span>
+          <span class="text-xs text-slate-400" id="review-time"></span>
         </div>
-        <p class="text-sm text-slate-700 leading-relaxed italic">
-          「料理はおいしかったのですが、隣の席との間隔が狭くて少し落ち着かなかったです。」
+        <p class="text-sm text-slate-700 leading-relaxed italic" id="review-comment">
+          読み込み中...
         </p>
+        <div id="review-translation-box" class="hidden mt-2 bg-indigo-50/60 p-2.5 rounded-xl border border-indigo-100 text-xs text-slate-700">
+          <span class="font-bold text-indigo-700">🔍 日本語訳:</span> <span id="review-translation-text"></span>
+        </div>
       </div>
 
       <!-- AI Templates Insert Buttons -->
       <div class="mb-4">
         <label class="block text-xs font-bold text-slate-600 mb-2">💡 AIの生成案をベースに挿入する:</label>
         <div class="grid grid-cols-3 gap-2">
-          <button onclick="insertTemplate('a')" class="text-xs font-semibold py-2 px-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition text-center truncate">
+          <button type="button" onclick="insertTemplate('a')" class="text-xs font-semibold py-2 px-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition text-center truncate">
             A. 丁寧・王道
           </button>
-          <button onclick="insertTemplate('b')" class="text-xs font-semibold py-2 px-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition text-center truncate">
+          <button type="button" onclick="insertTemplate('b')" class="text-xs font-semibold py-2 px-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition text-center truncate">
             B. フレンドリー
           </button>
-          <button onclick="insertTemplate('c')" class="text-xs font-semibold py-2 px-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition text-center truncate">
+          <button type="button" onclick="insertTemplate('c')" class="text-xs font-semibold py-2 px-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition text-center truncate">
             C. お詫び・改善
           </button>
         </div>
@@ -67,7 +70,7 @@
       <!-- Reply Text Area -->
       <div class="mb-6">
         <label class="block text-xs font-bold text-slate-700 mb-1">Googleマップに投稿する返信文</label>
-        <textarea id="reply-text" rows="7" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-4 text-sm text-slate-800 leading-relaxed focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="返信文を入力または上のAI案から挿入してください..."></textarea>
+        <textarea id="reply-text" rows="7" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-4 text-sm text-slate-800 leading-relaxed focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition" placeholder="返信文を入力または上のAI案から挿入してください..."></textarea>
         <div class="flex justify-between items-center mt-1 text-[11px] text-slate-400">
           <span>※店主様のお名前や店舗のこだわりを自由に追記できます。</span>
           <span id="char-count">0 文字</span>
@@ -76,7 +79,7 @@
 
       <!-- Action Buttons -->
       <div class="space-y-3">
-        <button onclick="submitReply()" id="submit-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-6 rounded-2xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
+        <button type="button" onclick="submitReply()" id="submit-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-6 rounded-2xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
           <span>🚀</span> この内容でGoogleマップに返信する
         </button>
         <a href="/dashboard.html" class="block text-center text-xs text-slate-400 hover:text-slate-600 font-medium py-1">
@@ -96,7 +99,7 @@
       </div>
       <h3 class="text-lg font-black text-slate-900 mb-2">返信が完了しました！</h3>
       <p class="text-xs text-slate-600 mb-6 leading-relaxed">
-        Googleマップのクチコミへ返信文が正常に投稿されました。反映には数分かかる場合があります。
+        Googleマップのクチコミへ返信文が正常に登録・投稿されました。
       </p>
       <a href="/dashboard.html" class="block w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition text-sm">
         管理画面へ戻る
@@ -110,17 +113,17 @@
   </footer>
 
   <script>
+    let currentReview = null;
+    let currentLocationId = null;
+
     const templates = {
-      a: "この度は当店をご利用いただき、また貴重なご意見をお寄せいただき誠にありがとうございます。お料理をお気に召していただけた一方で、お席の配置につきましてご不便とご窮屈な思いをおかけしてしまい申し訳ございませんでした。今後の店内のレイアウト改善の参考にさせていただきます。またのご来店を心よりお待ちしております。",
-      b: "ご来店いただきありがとうございました！お料理の味を褒めていただけてシェフも喜んでおります😊 お席の間隔について落ち着かなかったとのこと、大変申し訳ありませんでした。ゆったりお過ごしいただけるよう席配置を工夫してまいります。またのお越しをお待ちしております！",
-      c: "この度は当店へお越しいただき誠にありがとうございました。お料理をお楽しみいただけた反面、お席の間隔により落ち着いてお食事いただけなかった点、深くお詫び申し上げます。お客様に快適にお過ごしいただけるよう、テーブルの配置見直しと空間づくりの改善に努めてまいります。率直なご意見に感謝いたします。"
+      a: "この度はご来店いただき誠にありがとうございました。またのご来店をスタッフ一同心よりお待ちしております。",
+      b: "ご来店ありがとうございました！楽しんでいただけてとても嬉しいです😊 次回もぜひお待ちしております！",
+      c: "この度は当店へお越しいただき誠にありがとうございました。至らない点がございましたことを深くお詫び申し上げます。今後の改善に努めてまいります。"
     };
 
     const textarea = document.getElementById('reply-text');
     const countDisplay = document.getElementById('char-count');
-
-    // 初期値としてテンプレートCをセット
-    insertTemplate('c');
 
     function insertTemplate(type) {
       textarea.value = templates[type] || "";
@@ -133,19 +136,133 @@
       countDisplay.innerText = `${textarea.value.length} 文字`;
     }
 
-    function submitReply() {
-      if (!textarea.value.trim()) {
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+      } catch (e) {
+        return dateStr;
+      }
+    }
+
+    async function initPage() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const reviewId = urlParams.get('review_id');
+      currentLocationId = urlParams.get('location_id');
+
+      // 1. 認証と店舗名取得
+      try {
+        const authRes = await fetch('/api/auth/me');
+        if (authRes.ok) {
+          const authData = await authRes.json();
+          if (authData.locations && authData.locations.length > 0) {
+            const loc = authData.locations[0];
+            const headerStore = document.getElementById('header-store-name');
+            if (headerStore) headerStore.innerText = loc.location_name;
+            if (!currentLocationId) currentLocationId = loc.id;
+          }
+        }
+      } catch (e) {
+        console.warn('Auth fetch error:', e);
+      }
+
+      // 2. クチコミデータ取得
+      try {
+        const apiUrl = currentLocationId ? `/api/reviews?location_id=${encodeURIComponent(currentLocationId)}` : '/api/reviews';
+        const res = await fetch(apiUrl);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.reviews && data.reviews.length > 0) {
+            let matched = null;
+            if (reviewId) {
+              matched = data.reviews.find(r => r.id === reviewId);
+            }
+            if (!matched) {
+              matched = data.reviews.find(r => !r.reply_status || !r.reply_status.startsWith('replied')) || data.reviews[0];
+            }
+
+            if (matched) {
+              currentReview = matched;
+              if (!currentLocationId) currentLocationId = matched.location_id;
+
+              document.getElementById('reviewer-name').innerText = `${matched.reviewer_name || 'お客様'} 様のクチコミ`;
+              document.getElementById('review-stars').innerText = '★'.repeat(matched.star_rating || 5) + '☆'.repeat(Math.max(0, 5 - (matched.star_rating || 5)));
+              document.getElementById('review-time').innerText = formatDate(matched.review_created_at || matched.created_at);
+              document.getElementById('review-comment').innerText = `「${matched.comment || ''}」`;
+
+              if (matched.generated_reply_a) templates.a = matched.generated_reply_a;
+              if (matched.generated_reply_b) templates.b = matched.generated_reply_b;
+              if (matched.generated_reply_c) templates.c = matched.generated_reply_c;
+
+              // 初期テンプレート選択: 1~2星ならお詫び案C、それ以外は丁寧案A
+              if (matched.star_rating <= 2) {
+                insertTemplate('c');
+              } else {
+                insertTemplate('a');
+              }
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Review fetch error:', e);
+      }
+
+      // フォールバック初期表示
+      document.getElementById('reviewer-name').innerText = '鈴木 一郎 様のクチコミ';
+      document.getElementById('review-stars').innerText = '★★☆☆☆';
+      document.getElementById('review-time').innerText = '新着';
+      document.getElementById('review-comment').innerText = '「料理はおいしかったのですが、隣の席との間隔が狭くて少し落ち着かなかったです。」';
+      templates.a = "この度は当店をご利用いただき誠にありがとうございます。お料理をお気に召していただけた一方で、お席の配置につきましてご窮屈な思いをおかけしてしまい申し訳ございませんでした。今後のレイアウト改善に努めます。";
+      templates.b = "ご来店いただきありがとうございました！味を褒めていただき嬉しいです😊 お席の間隔について落ち着かなかったとのこと、大変申し訳ありませんでした。より居心地の良いお店作りに努めます！";
+      templates.c = "この度は当店をご利用いただいたにもかかわらず、ご不快な思いをさせてしまい誠に申し訳ございませんでした。いただいたご指摘を真摯に受け止め、座席配置の見直し等、改善に努めてまいります。";
+      insertTemplate('c');
+    }
+
+    async function submitReply() {
+      const text = textarea.value.trim();
+      if (!text) {
         alert('返信文を入力してください。');
         return;
       }
       const btn = document.getElementById('submit-btn');
+      const origText = btn.innerHTML;
       btn.innerHTML = '<span>⏳</span> Googleマップへ送信中...';
       btn.disabled = true;
 
-      setTimeout(() => {
-        document.getElementById('modal').classList.remove('hidden');
-      }, 800);
+      const reviewId = currentReview ? currentReview.id : new URLSearchParams(window.location.search).get('review_id') || 'reviews/104';
+      const locId = currentLocationId || (currentReview ? currentReview.location_id : 'locations/184920481920');
+
+      try {
+        const res = await fetch('/api/reviews/reply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reviewId: reviewId,
+            locationId: locId,
+            replyText: text,
+            replyStatus: 'replied_manual'
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          document.getElementById('modal').classList.remove('hidden');
+        } else {
+          alert('返信の送信に失敗しました: ' + (data.error || '不明なエラー'));
+          btn.disabled = false;
+          btn.innerHTML = origText;
+        }
+      } catch (err) {
+        alert('通信エラーが発生しました: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = origText;
+      }
     }
+
+    document.addEventListener('DOMContentLoaded', initPage);
   </script>
 
 </body>

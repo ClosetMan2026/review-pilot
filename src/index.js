@@ -130,6 +130,8 @@ export default {
             email: user.email,
             name: user.name,
             plan: user.plan || user.subscription_status || 'standard',
+            subscription_status: user.subscription_status,
+            trial_ends_at: user.trial_ends_at,
             notification_email: user.notification_email,
             line_user_id: user.line_user_id
           },
@@ -314,9 +316,9 @@ export default {
         }
 
         const body = await request.json();
-        const { locationId, locationName, category, address, notificationEmail, lineUserId } = body;
+        const { locationId, locationName, category, address, notificationEmail, lineUserId, autoReply, aiTone } = body;
         const result = await updateLocationSettings(env.DB, locationId, user.id, {
-          locationName, category, address, notificationEmail, lineUserId
+          locationName, category, address, notificationEmail, lineUserId, autoReply, aiTone
         });
 
         return jsonResponse({ success: true, ...result });
@@ -989,15 +991,27 @@ export async function getUserBySession(db, sessionToken) {
 export async function getUserLocations(db, userId) {
   if (!db || !userId) return [];
 
-  const query = `
-    SELECT id, user_id, account_id, location_name, category, address,
-           pubsub_subscribed, created_at, updated_at
-    FROM locations
-    WHERE user_id = ?
-    ORDER BY created_at ASC
-  `;
-  const { results } = await db.prepare(query).bind(userId).all();
-  return results || [];
+  try {
+    const query = `
+      SELECT id, user_id, account_id, location_name, category, address,
+             auto_reply, ai_tone, pubsub_subscribed, created_at, updated_at
+      FROM locations
+      WHERE user_id = ?
+      ORDER BY created_at ASC
+    `;
+    const { results } = await db.prepare(query).bind(userId).all();
+    return results || [];
+  } catch (e) {
+    const fallbackQuery = `
+      SELECT id, user_id, account_id, location_name, category, address,
+             pubsub_subscribed, created_at, updated_at
+      FROM locations
+      WHERE user_id = ?
+      ORDER BY created_at ASC
+    `;
+    const { results } = await db.prepare(fallbackQuery).bind(userId).all();
+    return results || [];
+  }
 }
 
 /**
@@ -1050,7 +1064,7 @@ export async function getLocationReviews(db, locationId, userId) {
  * 5. 店舗設定の更新 (テナント分離・改ざん防止 RLS)
  * UPDATE文のWHERE句に必ず id と user_id の両方を指定することで、他人の店舗設定が更新されるのを防ぎます。
  */
-export async function updateLocationSettings(db, locationId, userId, { locationName, category, address, notificationEmail, lineUserId } = {}) {
+export async function updateLocationSettings(db, locationId, userId, { locationName, category, address, notificationEmail, lineUserId, autoReply, aiTone } = {}) {
   if (!db || !locationId || !userId) {
     throw new Error("店舗IDおよびユーザーIDは必須です。");
   }
@@ -1092,6 +1106,27 @@ export async function updateLocationSettings(db, locationId, userId, { locationN
       lineUserId !== undefined ? lineUserId : null,
       userId
     ).run();
+  }
+
+  // auto_reply / ai_tone の更新（設定されている場合）
+  if (autoReply !== undefined || aiTone !== undefined) {
+    try {
+      const updateSettingsQuery = `
+        UPDATE locations
+        SET auto_reply = COALESCE(?, auto_reply),
+            ai_tone = COALESCE(?, ai_tone),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND user_id = ?
+      `;
+      await db.prepare(updateSettingsQuery).bind(
+        autoReply !== undefined ? (autoReply ? 1 : 0) : null,
+        aiTone !== undefined ? aiTone : null,
+        locationId,
+        userId
+      ).run();
+    } catch (e) {
+      // D1でカラム未作成の場合はスキップ
+    }
   }
 
   return { success: true, updatedLocationId: locationId };

@@ -10,6 +10,18 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Inter', 'Noto Sans JP', sans-serif; }
+    .animate-fade-in { animation: fadeIn 0.25s ease-out forwards; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .toast-animate {
+      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translate(-50%, 20px); }
+      to { opacity: 1; transform: translate(-50%, 0); }
+    }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col">
@@ -19,14 +31,14 @@
     <div class="max-w-md w-full bg-white rounded-3xl border border-slate-200 shadow-xl p-6 sm:p-8 text-center animate-fade-in">
       
       <!-- Brand Logo -->
-      <a href="/" class="inline-flex items-center gap-2 mb-6">
+      <a href="/" class="inline-flex items-center gap-2 mb-6 hover:opacity-90 transition">
         <span class="text-3xl">✨</span>
         <span class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">らくらくクチコミ返信</span>
         <span class="text-[10px] sm:text-xs font-black text-indigo-600 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-full">らくコミくん</span>
       </a>
 
       <h1 class="text-lg sm:text-xl font-extrabold text-slate-900 mb-2">店舗管理画面へログイン</h1>
-      <p class="text-xs text-slate-500 mb-8 leading-relaxed">
+      <p class="text-xs text-slate-500 mb-6 leading-relaxed">
         Googleビジネスプロフィールと連携して、Googleマップのクチコミ自動検知・AI返信を始めましょう。
       </p>
 
@@ -40,8 +52,8 @@
           <label class="block text-xs font-bold text-slate-700 mb-1">パスワード</label>
           <input type="password" id="loginPassword" required placeholder="••••••••" value="password123" class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 transition">
         </div>
-        <button type="submit" id="loginSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl text-xs shadow-md hover:shadow-lg transition">
-          店舗管理画面にログイン →
+        <button type="submit" id="loginSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl text-xs shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
+          <span>店舗管理画面にログイン →</span>
         </button>
       </form>
 
@@ -63,8 +75,8 @@
       </div>
 
       <div class="mt-6">
-        <a href="/" class="text-xs text-slate-400 hover:text-slate-600 transition">
-          ← トップページに戻る
+        <a href="/" class="text-xs text-slate-400 hover:text-slate-600 transition inline-flex items-center gap-1">
+          <span>←</span> トップページに戻る
         </a>
       </div>
 
@@ -72,12 +84,12 @@
   </div>
 
   <!-- ==================== 2. Dashboard View (ログイン後画面) ==================== -->
-  <div id="dashboardView" class="min-h-screen flex flex-col">
+  <div id="dashboardView" class="hidden min-h-screen flex flex-col">
 
-    <!-- Top Navbar (スマホ完全最適化) -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
-        <div class="flex items-center gap-2 sm:gap-4 min-w-0">
+    <!-- Top Navbar -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+      <div class="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 sm:gap-4 min-w-0">
           <a href="/" class="flex items-center gap-1.5 sm:gap-2 font-black text-base sm:text-xl text-indigo-600 truncate">
             <span class="text-xl sm:text-2xl shrink-0">✨</span>
             <span class="truncate">らくらくクチコミ返信</span>
@@ -87,256 +99,385 @@
         </div>
 
         <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-          <div class="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-            <span class="font-bold text-slate-800 max-w-[90px] sm:max-w-[160px] truncate">渋谷店</span>
+          <!-- Active Store Badge -->
+          <div class="flex items-center gap-1.5 text-xs text-slate-700 bg-slate-50 border border-slate-200 px-2.5 sm:px-3 py-1.5 rounded-xl">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse"></span>
+            <span id="navStoreName" class="font-bold text-slate-900 max-w-[100px] sm:max-w-[180px] truncate">店舗読み込み中...</span>
           </div>
-          <button onclick="logoutUser()" class="text-xs text-slate-500 hover:text-red-600 font-bold bg-slate-100 hover:bg-red-50 px-2.5 py-1.5 rounded-lg transition shrink-0">
-            ログアウト
+
+          <!-- User Info Pill (Desktop) -->
+          <div class="hidden sm:flex flex-col text-right leading-tight">
+            <span id="navUserName" class="text-xs font-bold text-slate-800 truncate max-w-[140px]">オーナー</span>
+            <span id="navUserEmail" class="text-[10px] text-slate-400 truncate max-w-[140px]">---</span>
+          </div>
+
+          <!-- Logout Button -->
+          <button onclick="logoutUser()" title="店舗管理画面からログアウト" class="text-xs text-slate-600 hover:text-red-600 font-bold bg-slate-100 hover:bg-red-50 border border-slate-200 hover:border-red-200 px-3 py-1.5 rounded-xl transition shrink-0 flex items-center gap-1">
+            <span>🚪</span>
+            <span class="hidden sm:inline">ログアウト</span>
           </button>
         </div>
       </div>
     </header>
 
     <!-- Dashboard Container -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-8">
+    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-5 sm:py-8">
 
       <!-- Checkout Success Notification Banner (URL checkout=success で表示) -->
-      <div id="checkoutSuccessBanner" class="hidden mb-5 sm:mb-8 bg-emerald-50 border-2 border-emerald-300 p-4 sm:p-5 rounded-xl sm:rounded-2xl shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 animate-fade-in">
-      <div class="flex items-start sm:items-center gap-3">
-        <span class="text-2xl sm:text-3xl shrink-0">🎉</span>
-        <div>
-          <h3 class="text-xs sm:text-sm font-black text-emerald-900">14日間の無料トライアル登録が完了しました！</h3>
-          <p class="text-[11px] sm:text-xs text-emerald-700 font-medium mt-0.5">本日より14日間は完全無料（0円）で全機能をご利用いただけます。期間中のお支払い方法変更や解約はいつでも可能です。</p>
-        </div>
-      </div>
-      <button onclick="document.getElementById('checkoutSuccessBanner').classList.add('hidden')" class="w-full sm:w-auto text-center text-xs font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-100 hover:bg-emerald-200 px-3 py-1.5 rounded-lg transition">閉じる</button>
-    </div>
-
-    <!-- Status Overview Cards (スマホ2列×2行、PC4列コンパクト表示) -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-5 sm:mb-8">
-      <div class="bg-white p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm">
-        <span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase block">今月の新着クチコミ</span>
-        <div class="flex items-baseline gap-1 sm:gap-2 mt-1 sm:mt-2">
-          <span class="text-2xl sm:text-3xl font-black text-slate-900">18</span>
-          <span class="text-xs font-bold text-emerald-600">件</span>
-        </div>
-      </div>
-
-      <div class="bg-white p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm">
-        <span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase block">返信完了率</span>
-        <div class="flex items-baseline gap-1 sm:gap-2 mt-1 sm:mt-2">
-          <span class="text-2xl sm:text-3xl font-black text-indigo-600">100%</span>
-          <span class="text-[10px] font-bold text-slate-400 hidden sm:inline">（全件完了）</span>
-        </div>
-      </div>
-
-      <div class="bg-white p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm">
-        <span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase block">平均評価</span>
-        <div class="flex items-baseline gap-1 sm:gap-2 mt-1 sm:mt-2">
-          <span class="text-2xl sm:text-3xl font-black text-amber-500">★ 4.8</span>
-          <span class="text-[10px] sm:text-xs font-bold text-slate-400">/ 5.0</span>
-        </div>
-      </div>
-
-      <div class="bg-white p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm">
-        <span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase block">平均返信時間</span>
-        <div class="flex items-baseline gap-1 sm:gap-2 mt-1 sm:mt-2">
-          <span class="text-2xl sm:text-3xl font-black text-slate-900">2.4</span>
-          <span class="text-[10px] sm:text-xs font-bold text-slate-500">分（即応）</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Mobile Tab Switcher (スマホ専用タブバー: スマホでの契約ページ見づらさを完全解決！) -->
-    <div class="lg:hidden flex bg-slate-200/90 p-1 rounded-xl mb-4 text-xs font-bold">
-      <button id="mobileTabBtnReviews" onclick="switchMobileTab('reviews')" class="flex-1 py-2.5 rounded-lg bg-white text-indigo-600 shadow-sm text-center transition flex items-center justify-center gap-1.5">
-        <span>💬</span> クチコミ返信
-      </button>
-      <button id="mobileTabBtnSettings" onclick="switchMobileTab('settings')" class="flex-1 py-2.5 rounded-lg text-slate-600 hover:text-slate-900 text-center transition flex items-center justify-center gap-1.5">
-        <span>💳</span> ご契約プラン・設定
-      </button>
-    </div>
-
-    <div class="grid lg:grid-cols-3 gap-5 lg:gap-8">
-      
-      <!-- Left 2 Cols: Review Management Table (id: reviewsContainer) -->
-      <div id="reviewsContainer" class="lg:col-span-2 space-y-5 sm:space-y-6">
-        <div class="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 sm:mb-6">
-            <div>
-              <h2 class="text-base sm:text-lg font-extrabold text-slate-900">受信したクチコミと返信履歴</h2>
-              <p class="text-xs text-slate-500">Googleマップからリアルタイムで同期されたクチコミ一覧です。</p>
-            </div>
-            <button onclick="alert('最新のクチコミを再取得しました！')" class="self-start sm:self-auto text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 transition flex items-center gap-1">
-              <span>🔄</span> 今すぐ同期
-            </button>
+      <div id="checkoutSuccessBanner" class="hidden mb-6 bg-emerald-50 border-2 border-emerald-300 p-4 sm:p-5 rounded-2xl shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 animate-fade-in">
+        <div class="flex items-start sm:items-center gap-3">
+          <span class="text-2xl sm:text-3xl shrink-0">🎉</span>
+          <div>
+            <h3 class="text-xs sm:text-sm font-black text-emerald-900">14日間の無料トライアル登録が完了しました！</h3>
+            <p class="text-[11px] sm:text-xs text-emerald-700 font-medium mt-0.5">本日より14日間は完全無料（0円）で全機能をご利用いただけます。期間中のプラン変更や解約はいつでも可能です。</p>
           </div>
+        </div>
+        <button onclick="document.getElementById('checkoutSuccessBanner').classList.add('hidden')" class="w-full sm:w-auto text-center text-xs font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-100 hover:bg-emerald-200 px-3.5 py-1.5 rounded-xl transition shrink-0">閉じる</button>
+      </div>
 
-          <div id="reviewsList" class="space-y-4 sm:space-y-5">
-            <!-- Review Item 1 -->
-            <div class="border-b border-slate-100 pb-4 sm:pb-5">
-              <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-2">
-                  <span class="font-bold text-sm text-slate-900">田中 太郎 様</span>
-                  <span class="text-amber-500 font-bold text-xs">★★★★★</span>
-                </div>
-                <span class="text-[10px] sm:text-xs font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">返信完了</span>
-              </div>
-              <p class="text-xs sm:text-sm text-slate-700 mb-2.5 leading-relaxed">「ランチで訪問しました。カルボナーラがとても美味しかったです！店員さんの接客も心地よく、また利用したいと思います。」</p>
-              <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-600">
-                <span class="font-bold text-indigo-600 block mb-1">💬 返信内容:</span>
-                「この度はご来店いただき誠にありがとうございました。カルボナーラをお気に召していただけて大変光栄です！次回はぜひディナーの限定メニューもお試しくださいませ。」
-              </div>
-            </div>
-
-            <!-- Review Item 2 (Inbound English Review) -->
-            <div class="border-b border-slate-100 pb-4 sm:pb-5">
-              <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-2">
-                  <span class="font-bold text-sm text-slate-900">🇺🇸 David Miller 様</span>
-                  <span class="text-amber-500 font-bold text-xs">★★★★★</span>
-                </div>
-                <span class="text-[10px] sm:text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full">英語返信完了</span>
-              </div>
-              <p class="text-xs sm:text-sm text-slate-700 mb-2 leading-relaxed italic">"The truffle pasta was amazing! Best Italian food we had during our stay in Tokyo. Great staff and cozy ambiance."</p>
-              <div class="bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-100 text-[11px] text-slate-600 mb-2.5">
-                <span class="font-bold text-indigo-700">🔍 AI日本語訳:</span> 「トリュフパスタが最高でした！東京滞在中食べたイタリアンで一番です。スタッフも素晴らしく居心地が良かったです。」
-              </div>
-              <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-600">
-                <span class="font-bold text-emerald-600 block mb-1">💬 英語返信内容:</span>
-                "Thank you so much for your wonderful review! We are delighted that you enjoyed our truffle pasta. Have a fantastic stay in Japan, and we hope to see you again!"
-              </div>
-            </div>
-
-            <!-- Review Item 3 -->
-            <div class="border-b border-slate-100 pb-4 sm:pb-5">
-              <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-2">
-                  <span class="font-bold text-sm text-slate-900">佐藤 花子 様</span>
-                  <span class="text-amber-500 font-bold text-xs">★★★★☆</span>
-                </div>
-                <span class="text-[10px] sm:text-xs font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">返信完了</span>
-              </div>
-              <p class="text-xs sm:text-sm text-slate-700 mb-2.5 leading-relaxed">「ピザの生地がモチモチで最高でした！ただ少し混んでいて席に案内されるまで10分ほど待ちました。」</p>
-              <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-600">
-                <span class="font-bold text-emerald-600 block mb-1">💬 返信内容:</span>
-                「嬉しいお言葉ありがとうございます！ピザを褒めていただきピカイチの笑顔になりました🍕 お待たせしてしまい申し訳ありませんでした。次回はスムーズにご案内できるよう準備してお待ちしております！」
-              </div>
-            </div>
-
-            <!-- Review Item 4 (Pending manual edit demo) -->
-            <div>
-              <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-2">
-                  <span class="font-bold text-sm text-slate-900">鈴木 一郎 様</span>
-                  <span class="text-amber-500 font-bold text-xs">★★☆☆☆</span>
-                </div>
-                <span class="text-[10px] sm:text-xs font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">通知済み (未返信)</span>
-              </div>
-              <p class="text-xs sm:text-sm text-slate-700 mb-3 leading-relaxed">「料理はおいしかったのですが、隣の席との間隔が狭くて少し落ち着かなかったです。」</p>
-              
-              <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                <a href="/reply.html" class="inline-flex items-center justify-center gap-1 text-xs font-bold bg-indigo-600 text-white px-3.5 py-2 rounded-xl hover:bg-indigo-700 transition">
-                  <span>✍️</span> 手動編集・返信画面を開く
-                </a>
-              </div>
-            </div>
+      <!-- Status Overview Cards (動的計算・表示) -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <!-- 1. 総クチコミ数 -->
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">総クチコミ数</span>
+            <span class="text-base sm:text-lg">💬</span>
           </div>
+          <div class="flex items-baseline gap-1 mt-2">
+            <span id="statTotalReviews" class="text-2xl sm:text-3xl font-black text-slate-900">0</span>
+            <span class="text-xs font-bold text-slate-500">件</span>
+          </div>
+          <span class="text-[10px] sm:text-[11px] text-slate-400 block mt-1">Googleマップ連携同期</span>
+        </div>
 
+        <!-- 2. 平均評価★ -->
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">平均評価</span>
+            <span class="text-base sm:text-lg">⭐</span>
+          </div>
+          <div class="flex items-baseline gap-1 mt-2">
+            <span id="statAvgRating" class="text-2xl sm:text-3xl font-black text-amber-500">★ 0.0</span>
+            <span class="text-[10px] sm:text-xs font-bold text-slate-400">/ 5.0</span>
+          </div>
+          <span id="statRatingStars" class="text-[10px] sm:text-[11px] text-amber-500 font-bold block mt-1 tracking-wider">☆☆☆☆☆</span>
+        </div>
+
+        <!-- 3. 未返信件数 -->
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">未返信件数</span>
+            <span class="text-base sm:text-lg">⏳</span>
+          </div>
+          <div class="flex items-baseline gap-1.5 mt-2">
+            <span id="statPendingReviews" class="text-2xl sm:text-3xl font-black text-slate-900">0</span>
+            <span class="text-xs font-bold text-slate-500">件</span>
+            <span id="statPendingBadge" class="ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">確認中</span>
+          </div>
+          <span class="text-[10px] sm:text-[11px] text-slate-400 block mt-1">AI返信案が待機中</span>
+        </div>
+
+        <!-- 4. 返信完了率 / AI返信率 -->
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">AI返信率</span>
+            <span class="text-base sm:text-lg">🤖</span>
+          </div>
+          <div class="flex items-baseline gap-1 mt-2">
+            <span id="statReplyRate" class="text-2xl sm:text-3xl font-black text-indigo-600">100%</span>
+          </div>
+          <span id="statRepliedCount" class="text-[10px] sm:text-[11px] text-slate-400 block mt-1">0 / 0 件返信完了</span>
         </div>
       </div>
 
-      <!-- Right 1 Col: Settings & Status (id: settingsContainer, スマホではタブで切替可能) -->
-      <div id="settingsContainer" class="hidden lg:block space-y-5 sm:space-y-6">
+      <!-- Mobile Tab Switcher (スマホ最適化タブ) -->
+      <div class="lg:hidden flex bg-slate-200/80 p-1 rounded-2xl mb-5 text-xs font-bold">
+        <button id="mobileTabBtnReviews" type="button" onclick="switchMobileTab('reviews')" class="flex-1 py-2.5 rounded-xl bg-white text-indigo-600 shadow-sm text-center transition flex items-center justify-center gap-1.5">
+          <span>💬</span> クチコミ一覧
+        </button>
+        <button id="mobileTabBtnSettings" type="button" onclick="switchMobileTab('settings')" class="flex-1 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 text-center transition flex items-center justify-center gap-1.5">
+          <span>⚙️</span> 店舗設定・ご契約
+        </button>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-6 lg:gap-8">
         
-        <!-- Subscription Card (Stripe連携 - 最重要なのでスマホ時は一番上に配置) -->
-        <div class="bg-white rounded-xl sm:rounded-2xl border-2 border-indigo-200/80 shadow-sm p-4 sm:p-6" id="subscriptionCard">
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-extrabold text-slate-900">ご契約プラン</h3>
-            <span id="subStatusBadge" class="text-[10px] font-extrabold bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full">14日間無料体験中</span>
-          </div>
-          <p class="text-xs text-slate-700 font-bold mb-1">スタンダードプラン（月額 ¥3,000 / 税込）</p>
-          <p id="trialDaysText" class="text-[11px] sm:text-xs text-slate-500 mb-4">無料トライアル期間：あと 14 日間（自動更新）</p>
-          
-          <div class="space-y-2.5">
-            <button id="startCheckoutBtn" onclick="startStripeCheckout()" class="w-full text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-1.5 transform hover:-translate-y-0.5">
-              <span>💳</span> 14日間無料トライアルに登録 (Stripe)
-            </button>
-            <button id="openPortalBtn" onclick="openStripePortal()" class="w-full text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl border border-slate-200 transition flex items-center justify-center gap-1.5">
-              <span>⚙️</span> お支払い方法の変更・解約・領収書
-            </button>
-          </div>
-          <p class="text-[10px] text-slate-400 mt-2.5 text-center">※世界標準のStripe安全暗号化決済を利用しています</p>
-        </div>
-
-        <!-- Google Account Connection -->
-        <div class="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
-          <h3 class="text-sm font-extrabold text-slate-900 mb-3">Google連携設定</h3>
-          <div class="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl mb-3 text-xs text-emerald-800">
-            <span class="font-bold">✅ Googleビジネスプロフィール連携中</span>
-            <p class="mt-1 text-emerald-700 font-mono text-[11px]">店舗ID: locations/184920481920</p>
-          </div>
-          <button onclick="alert('Googleアカウントとの再認証画面へ遷移します。')" class="w-full text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl border border-slate-300 transition">
-            連携アカウントの変更・再認証
-          </button>
-        </div>
-
-        <!-- Notification Settings (メール ＆ LINE連携) -->
-        <div class="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
-          <h3 class="text-sm font-extrabold text-slate-900 mb-3">通知先設定</h3>
-          
-          <div class="space-y-4 text-xs">
-            <div>
-              <div class="flex items-center justify-between mb-1">
-                <label class="font-bold text-slate-700">📧 通知メールアドレス</label>
-                <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">連携中</span>
+        <!-- Left 2 Cols: Review Management Table (id: reviewsContainer) -->
+        <div id="reviewsContainer" class="lg:col-span-2 space-y-5 sm:space-y-6">
+          <div class="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6">
+            
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 sm:mb-6 pb-4 border-b border-slate-100">
+              <div>
+                <h2 class="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                  <span>Googleマップクチコミ・返信管理</span>
+                  <span id="reviewsCountBadge" class="text-xs bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full">0件</span>
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">Googleマップから受信したクチコミの確認と、AI生成案による即時返信が可能です。</p>
               </div>
-              <input type="email" value="owner@trattoria-shibuya.com" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
-              <p class="text-[10px] text-slate-400 mt-1">※新着クチコミとAI返信案が届きます（メール内1タップ返信対応）</p>
-            </div>
 
-            <!-- LINE Integration Section -->
-            <div class="pt-3 border-t border-slate-100">
-              <div class="flex items-center justify-between mb-1.5">
-                <span class="font-bold text-slate-800 flex items-center gap-1.5">
-                  <span class="text-emerald-500 font-black">●</span> LINE公式アカウント通知
-                </span>
-                <span id="lineBadge" class="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded text-[10px]">連携可能</span>
-              </div>
-              <p class="text-slate-500 text-[11px] mb-2.5 leading-relaxed">
-                公式LINEを友だち追加して、スマホのLINEトークでAI返信案を受け取れます。
-              </p>
-              
-              <div class="space-y-2">
-                <button onclick="openLineModal()" class="w-full bg-[#06C755] hover:bg-[#05b34c] text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-sm transform hover:-translate-y-0.5">
-                  <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 5.82 2 10.53c0 2.94 1.76 5.54 4.45 7.1-.2.72-.73 2.61-.83 3.01-.13.51.18.5.38.37.16-.1 2.5-1.7 3.51-2.39.81.12 1.64.18 2.49.18 5.52 0 10-3.82 10-8.53C22 5.82 17.52 2 12 2z"/></svg>
-                  <span>LINE公式アカウントと連携する</span>
-                </button>
-                <button onclick="sendLineTestPush()" id="lineTestPushBtn" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 rounded-xl text-xs transition flex items-center justify-center gap-1 border border-slate-200">
-                  <span>⚡</span> LINEテスト通知を送信してみる
+              <div class="flex items-center gap-2 self-start sm:self-auto">
+                <!-- Refresh Button -->
+                <button type="button" onclick="syncReviews()" id="syncBtn" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl border border-indigo-200 transition flex items-center gap-1">
+                  <span id="syncIcon" class="inline-block transition">🔄</span>
+                  <span>今すぐ同期</span>
                 </button>
               </div>
             </div>
+
+            <!-- Review Filter Pills -->
+            <div class="flex items-center gap-1.5 mb-5 overflow-x-auto pb-1 text-xs font-bold">
+              <button type="button" onclick="setReviewFilter('all')" id="filterBtnAll" class="px-3 py-1.5 rounded-xl bg-indigo-600 text-white shadow-xs transition">
+                すべて
+              </button>
+              <button type="button" onclick="setReviewFilter('pending')" id="filterBtnPending" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
+                未返信のみ
+              </button>
+              <button type="button" onclick="setReviewFilter('replied')" id="filterBtnReplied" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
+                返信完了のみ
+              </button>
+            </div>
+
+            <!-- Review List Items -->
+            <div id="reviewsList" class="space-y-4 sm:space-y-5">
+              <div class="p-8 text-center text-slate-400 text-xs">
+                <span class="text-2xl block mb-2 animate-spin">⏳</span>
+                クチコミを読み込んでいます...
+              </div>
+            </div>
+
           </div>
+        </div>
+
+        <!-- Right 1 Col: Settings & Status (id: settingsContainer) -->
+        <div id="settingsContainer" class="hidden lg:block space-y-5 sm:space-y-6">
+          
+          <!-- 1. Subscription Card (Stripe連携) -->
+          <div class="bg-white rounded-2xl sm:rounded-3xl border-2 border-indigo-200/80 shadow-sm p-4 sm:p-6" id="subscriptionCard">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-sm font-extrabold text-slate-900">ご契約プラン</h3>
+              <span id="subStatusBadge" class="text-[10px] font-extrabold bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full">確認中...</span>
+            </div>
+            <p id="subPlanName" class="text-xs text-slate-800 font-extrabold mb-1">スタンダードプラン（月額 ¥3,000 / 税込）</p>
+            <p id="trialDaysText" class="text-[11px] sm:text-xs text-slate-500 mb-4">無料トライアル期間：確認中</p>
+            
+            <div class="space-y-2.5">
+              <button type="button" id="startCheckoutBtn" onclick="startStripeCheckout()" class="w-full text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-1.5 transform hover:-translate-y-0.5">
+                <span>💳</span> 14日間無料トライアルに登録 (Stripe)
+              </button>
+              <button type="button" id="openPortalBtn" onclick="openStripePortal()" class="w-full text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl border border-slate-200 transition flex items-center justify-center gap-1.5">
+                <span>⚙️</span> お支払い方法の変更・解約・領収書
+              </button>
+            </div>
+            <p class="text-[10px] text-slate-400 mt-2.5 text-center">※世界基準のStripe安全暗号化決済を利用しています</p>
+          </div>
+
+          <!-- 2. Store Settings & AI Auto-Reply Form -->
+          <div class="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm font-extrabold text-slate-900">店舗設定・AI自動返信</h3>
+              <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">RLS保護</span>
+            </div>
+
+            <form id="locationSettingsForm" onsubmit="handleSaveSettings(event)" class="space-y-4 text-xs">
+              <!-- 店舗名 -->
+              <div>
+                <label class="block font-bold text-slate-700 mb-1">🏪 店舗名</label>
+                <input type="text" id="settingLocationName" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+              </div>
+
+              <!-- 店舗ID (Resource ID) -->
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="font-bold text-slate-700">店舗リソースID</label>
+                  <span class="text-[10px] text-slate-400 font-mono">Google Location</span>
+                </div>
+                <div class="flex items-center gap-1.5 bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-slate-600 font-mono text-[11px]">
+                  <input type="text" id="settingLocationId" readonly class="bg-transparent flex-1 outline-none font-bold text-slate-700 select-all cursor-default">
+                  <button type="button" onclick="copyLocationId()" class="bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 px-2 py-0.5 rounded-lg text-[10px] font-bold shrink-0 shadow-xs transition">
+                    コピー
+                  </button>
+                </div>
+              </div>
+
+              <!-- 業種 & 住所 -->
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">業種・カテゴリ</label>
+                  <input type="text" id="settingCategory" placeholder="イタリアン" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">店舗所在地</label>
+                  <input type="text" id="settingAddress" placeholder="東京都渋谷区..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                </div>
+              </div>
+
+              <!-- AI自動返信トグルスイッチ -->
+              <div class="pt-2 border-t border-slate-100">
+                <div class="flex items-center justify-between mb-1">
+                  <div>
+                    <span class="font-bold text-slate-900 block">🤖 クチコミ自動即時返信</span>
+                    <span class="text-[11px] text-slate-500">新着クチコミ検知時にAI案で即時投稿</span>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="settingAutoReply" class="sr-only peer">
+                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- AI返信トーン選択 -->
+              <div class="pt-2 border-t border-slate-100">
+                <label class="block font-bold text-slate-900 mb-2">🎨 AI返信トーンの既定設定</label>
+                <div class="grid grid-cols-3 gap-2">
+                  <label class="relative flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white cursor-pointer text-center transition has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/50 has-[:checked]:text-indigo-900">
+                    <input type="radio" name="aiTone" value="polite" class="sr-only" checked>
+                    <span class="text-base mb-1">👔</span>
+                    <span class="font-bold text-[11px] block">丁寧・王道</span>
+                    <span class="text-[9px] text-slate-400 mt-0.5">誠実な接客</span>
+                  </label>
+
+                  <label class="relative flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white cursor-pointer text-center transition has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/50 has-[:checked]:text-indigo-900">
+                    <input type="radio" name="aiTone" value="friendly" class="sr-only">
+                    <span class="text-base mb-1">😊</span>
+                    <span class="font-bold text-[11px] block">親しみ</span>
+                    <span class="text-[9px] text-slate-400 mt-0.5">絵文字・温かみ</span>
+                  </label>
+
+                  <label class="relative flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white cursor-pointer text-center transition has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/50 has-[:checked]:text-indigo-900">
+                    <input type="radio" name="aiTone" value="luxury" class="sr-only">
+                    <span class="text-base mb-1">💎</span>
+                    <span class="font-bold text-[11px] block">高級感</span>
+                    <span class="text-[9px] text-slate-400 mt-0.5">格調高い品格</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 通知先メールアドレス -->
+              <div class="pt-2 border-t border-slate-100">
+                <div class="flex items-center justify-between mb-1">
+                  <label class="font-bold text-slate-700">📧 通知先メールアドレス</label>
+                  <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">連携中</span>
+                </div>
+                <input type="email" id="settingNotificationEmail" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                <p class="text-[10px] text-slate-400 mt-1">※新着クチコミ検知時にAI返信案がこのアドレスへ即時配信されます</p>
+              </div>
+
+              <!-- 保存ボタン -->
+              <button type="submit" id="saveSettingsBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-1.5 transform hover:-translate-y-0.5">
+                <span>💾</span> 店舗設定を保存する
+              </button>
+            </form>
+          </div>
+
+          <!-- 3. LINE Integration -->
+          <div class="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-bold text-slate-900 flex items-center gap-1.5 text-xs">
+                <span class="text-[#06C755] font-black">●</span> LINE公式アカウント通知
+              </span>
+              <span class="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[10px]">連携可能</span>
+            </div>
+            <p class="text-slate-500 text-[11px] mb-3 leading-relaxed">
+              LINE公式アカウントを友だち追加すると、スマホのトーク画面へ新着クチコミとAI返信案がリアルタイム通知されます。
+            </p>
+            
+            <div class="space-y-2">
+              <button type="button" onclick="openLineModal()" class="w-full bg-[#06C755] hover:bg-[#05b34c] text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-xs">
+                <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 5.82 2 10.53c0 2.94 1.76 5.54 4.45 7.1-.2.72-.73 2.61-.83 3.01-.13.51.18.5.38.37.16-.1 2.5-1.7 3.51-2.39.81.12 1.64.18 2.49.18 5.52 0 10-3.82 10-8.53C22 5.82 17.52 2 12 2z"/></svg>
+                <span>LINE公式アカウントと連携する</span>
+              </button>
+              <button type="button" onclick="sendLineTestPush()" id="lineTestPushBtn" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold py-2 rounded-xl text-xs transition flex items-center justify-center gap-1 border border-slate-200">
+                <span>⚡</span> LINEテスト通知を送信してみる
+              </button>
+            </div>
+          </div>
+
         </div>
 
       </div>
 
-    </div>
+    </main>
 
-  </main>
-
-  <!-- Footer -->
-  <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400">
-    <p>&copy; 2026 らくらくクチコミ返信（らくコミくん）. All rights reserved.</p>
-  </footer>
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400 mt-auto">
+      <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <p>&copy; 2026 らくらくクチコミ返信（らくコミくん）. All rights reserved.</p>
+        <div class="flex items-center gap-4 text-slate-400">
+          <a href="/tokushoho.html" class="hover:underline">特定商取引法</a>
+          <a href="/privacy.html" class="hover:underline">プライバシーポリシー</a>
+          <a href="/terms.html" class="hover:underline">利用規約</a>
+        </div>
+      </div>
+    </footer>
 
   </div> <!-- End #dashboardView -->
 
-  <!-- Stripe Checkout & Customer Portal & Mobile Tab & Auth Logic -->
+  <!-- Toast Notification (2026 UX Best Practice: Floating Bottom-Center) -->
+  <div id="toastContainer" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none flex flex-col items-center gap-2"></div>
+
+  <!-- LINE Integration Modal -->
+  <div id="lineModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white max-w-md w-full rounded-3xl p-6 sm:p-8 shadow-2xl animate-fade-in relative">
+      <button type="button" onclick="closeLineModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+      
+      <div class="text-center mb-6">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-50 text-[#06C755] mb-3">
+          <svg class="w-7 h-7 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 5.82 2 10.53c0 2.94 1.76 5.54 4.45 7.1-.2.72-.73 2.61-.83 3.01-.13.51.18.5.38.37.16-.1 2.5-1.7 3.51-2.39.81.12 1.64.18 2.49.18 5.52 0 10-3.82 10-8.53C22 5.82 17.52 2 12 2z"/></svg>
+        </div>
+        <h3 class="text-lg font-black text-slate-900">LINE通知の連携手順</h3>
+        <p class="text-xs text-slate-500 mt-1">たったの2ステップでLINEにクチコミが届くようになります</p>
+      </div>
+
+      <div class="space-y-4 text-xs text-slate-700">
+        <!-- Step 1 -->
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+          <div class="flex items-center gap-2 font-bold text-slate-900 mb-2">
+            <span class="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[11px]">1</span>
+            <span>らくコミくん公式LINEを友だち追加</span>
+          </div>
+          <p class="text-[11px] text-slate-500 mb-3">スマホで以下のボタンをタップして友だち追加してください。</p>
+          <a href="https://manager.line.biz" target="_blank" rel="noopener noreferrer" class="block text-center bg-[#06C755] hover:bg-[#05b34c] text-white font-bold py-2.5 rounded-xl shadow-xs transition">
+            📱 LINE公式アカウントを友だち追加
+          </a>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+          <div class="flex items-center gap-2 font-bold text-slate-900 mb-2">
+            <span class="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[11px]">2</span>
+            <span>トーク画面に店舗IDを送信</span>
+          </div>
+          <p class="text-[11px] text-slate-500 mb-2">友だち追加したトーク画面に、以下の店舗IDを送信してください：</p>
+          <div class="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-300 font-mono text-xs">
+            <span id="lineModalLocationId" class="flex-1 truncate select-all font-bold text-indigo-600">locations/184920481920</span>
+            <button type="button" onclick="copyLocationId()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg text-[10px] font-bold shrink-0">コピー</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+        <button type="button" onclick="sendLineTestPush()" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3.5 py-2 rounded-xl border border-indigo-100 transition flex items-center gap-1">
+          <span>⚡</span> テスト通知を送る
+        </button>
+        <button type="button" onclick="closeLineModal()" class="text-xs font-bold text-slate-500 hover:text-slate-800 bg-slate-100 px-4 py-2 rounded-xl transition">
+          閉じる
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== Complete Dynamic Client-Side Logic ==================== -->
   <script>
-    // 認証状態の判定と画面切り替え (サーバーサイドセッション照合)
+    // グローバル状態管理
+    let currentUser = null;
+    let currentLocation = null;
+    let allReviews = [];
+    let currentFilter = 'all'; // 'all', 'pending', 'replied'
+
+    // =========================================================================
+    // 1. 認証判定と初期化 (GET /api/auth/me)
+    // =========================================================================
     async function checkAuthState() {
       const loginView = document.getElementById('loginView');
       const dashboardView = document.getElementById('dashboardView');
@@ -346,22 +487,464 @@
         if (res.ok) {
           const data = await res.json();
           if (data.success && data.user) {
+            currentUser = data.user;
+            currentLocation = (data.locations && data.locations.length > 0) ? data.locations[0] : null;
+
             if (loginView) loginView.classList.add('hidden');
             if (dashboardView) dashboardView.classList.remove('hidden');
-            loadDashboardData(data);
+
+            bindUserData(data);
+            await loadReviews(currentLocation?.id);
             return;
           }
         }
       } catch (e) {
-        console.warn('Auth check error:', e);
+        console.warn('Auth check network error:', e);
       }
 
-      // 未認証時
+      // 未認証 (401 または 認証失敗)
       if (loginView) loginView.classList.remove('hidden');
       if (dashboardView) dashboardView.classList.add('hidden');
     }
 
-    // ログインフォーム送信処理
+    // ユーザー・店舗情報のUIバインディング
+    function bindUserData(authData) {
+      const user = authData.user;
+      const loc = currentLocation;
+
+      // ヘッダー反映
+      const navStoreName = document.getElementById('navStoreName');
+      if (navStoreName) navStoreName.innerText = loc?.location_name || '店舗';
+
+      const navUserName = document.getElementById('navUserName');
+      if (navUserName) navUserName.innerText = user.name || 'オーナー';
+
+      const navUserEmail = document.getElementById('navUserEmail');
+      if (navUserEmail) navUserEmail.innerText = user.email || '';
+
+      // Stripe契約ステータスバッジ
+      updateStripeStatusBadge(user);
+
+      // 店舗設定フォームへの自動バインド
+      if (loc) {
+        const inputName = document.getElementById('settingLocationName');
+        if (inputName) inputName.value = loc.location_name || '';
+
+        const inputId = document.getElementById('settingLocationId');
+        if (inputId) inputId.value = loc.id || '';
+
+        const modalLocId = document.getElementById('lineModalLocationId');
+        if (modalLocId) modalLocId.innerText = loc.id || '';
+
+        const inputCategory = document.getElementById('settingCategory');
+        if (inputCategory) inputCategory.value = loc.category || '';
+
+        const inputAddress = document.getElementById('settingAddress');
+        if (inputAddress) inputAddress.value = loc.address || '';
+
+        const toggleAutoReply = document.getElementById('settingAutoReply');
+        if (toggleAutoReply) toggleAutoReply.checked = !!loc.auto_reply;
+
+        const aiToneRadios = document.getElementsByName('aiTone');
+        const currentTone = loc.ai_tone || 'polite';
+        for (const radio of aiToneRadios) {
+          if (radio.value === currentTone) {
+            radio.checked = true;
+            break;
+          }
+        }
+      }
+
+      const inputEmail = document.getElementById('settingNotificationEmail');
+      if (inputEmail) {
+        inputEmail.value = user.notification_email || user.email || '';
+      }
+    }
+
+    // Stripe 契約ステータスバッジの動的反映
+    function updateStripeStatusBadge(user) {
+      const badge = document.getElementById('subStatusBadge');
+      const planNameEl = document.getElementById('subPlanName');
+      const trialText = document.getElementById('trialDaysText');
+      const checkoutBtn = document.getElementById('startCheckoutBtn');
+
+      const isTrialing = user.subscription_status === 'trialing' || !user.subscription_status;
+      const trialEndsAt = user.trial_ends_at;
+
+      let remainingDays = 14;
+      if (trialEndsAt) {
+        const diff = new Date(trialEndsAt) - new Date();
+        remainingDays = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+      }
+
+      if (user.subscription_status === 'active') {
+        const planTitle = (user.plan === 'pro') ? 'Proプラン（月額 ¥6,800 / 税込）' : 'スタンダードプラン（月額 ¥3,000 / 税込）';
+        if (planNameEl) planNameEl.innerText = planTitle;
+        if (badge) {
+          badge.className = 'text-[10px] font-extrabold bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full';
+          badge.innerText = (user.plan === 'pro') ? 'Proプラン (アクティブ)' : 'スタンダード (アクティブ)';
+        }
+        if (trialText) trialText.innerText = '定期課金が有効です。次回決済日に自動更新されます。';
+        if (checkoutBtn) checkoutBtn.classList.add('hidden');
+      } else if (isTrialing) {
+        if (badge) {
+          badge.className = 'text-[10px] font-extrabold bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full';
+          badge.innerText = `無料トライアル中 (残り${remainingDays}日)`;
+        }
+        if (trialText) {
+          trialText.innerText = `無料トライアル期間：あと ${remainingDays} 日間（自動更新）`;
+        }
+      } else {
+        if (badge) {
+          badge.className = 'text-[10px] font-extrabold bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full';
+          badge.innerText = user.subscription_status || '要確認';
+        }
+      }
+    }
+
+    // =========================================================================
+    // 2. クチコミ一覧取得 & 統計動的計算 (GET /api/reviews)
+    // =========================================================================
+    async function loadReviews(locationId) {
+      const container = document.getElementById('reviewsList');
+      const url = locationId ? `/api/reviews?location_id=${encodeURIComponent(locationId)}` : '/api/reviews';
+
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.reviews)) {
+            allReviews = data.reviews;
+            updateStatistics(allReviews);
+            renderReviews();
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Reviews fetch error:', err);
+      }
+
+      if (container && allReviews.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center text-slate-400 text-xs">
+            クチコミの取得に失敗したか、まだ登録されていません。
+          </div>
+        `;
+      }
+    }
+
+    // 統計サマリーカードの動的計算
+    function updateStatistics(reviews) {
+      const total = reviews.length;
+      let pendingCount = 0;
+      let repliedCount = 0;
+      let sumRating = 0;
+
+      reviews.forEach(r => {
+        const isReplied = r.reply_status && r.reply_status.startsWith('replied');
+        if (isReplied) {
+          repliedCount++;
+        } else {
+          pendingCount++;
+        }
+        sumRating += (r.star_rating || 5);
+      });
+
+      const avgRating = total > 0 ? (sumRating / total).toFixed(1) : '0.0';
+      const replyRate = total > 0 ? Math.round((repliedCount / total) * 100) : 100;
+
+      // 1. 総クチコミ数
+      const statTotal = document.getElementById('statTotalReviews');
+      if (statTotal) statTotal.innerText = total;
+
+      const badgeCount = document.getElementById('reviewsCountBadge');
+      if (badgeCount) badgeCount.innerText = `${total}件`;
+
+      // 2. 平均評価★
+      const statAvg = document.getElementById('statAvgRating');
+      if (statAvg) statAvg.innerText = `★ ${avgRating}`;
+
+      const statStars = document.getElementById('statRatingStars');
+      if (statStars) {
+        const fullStars = Math.round(parseFloat(avgRating));
+        statStars.innerText = '★'.repeat(fullStars) + '☆'.repeat(Math.max(0, 5 - fullStars));
+      }
+
+      // 3. 未返信件数
+      const statPending = document.getElementById('statPendingReviews');
+      if (statPending) statPending.innerText = pendingCount;
+
+      const pendingBadge = document.getElementById('statPendingBadge');
+      if (pendingBadge) {
+        if (pendingCount > 0) {
+          pendingBadge.className = 'ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 animate-pulse';
+          pendingBadge.innerText = '要対応';
+        } else {
+          pendingBadge.className = 'ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700';
+          pendingBadge.innerText = '全件完了 🎉';
+        }
+      }
+
+      // 4. AI返信完了率
+      const statRate = document.getElementById('statReplyRate');
+      if (statRate) statRate.innerText = `${replyRate}%`;
+
+      const statRepliedCount = document.getElementById('statRepliedCount');
+      if (statRepliedCount) statRepliedCount.innerText = `${repliedCount} / ${total} 件返信完了`;
+    }
+
+    // フィルター切り替え
+    function setReviewFilter(filter) {
+      currentFilter = filter;
+      const btnAll = document.getElementById('filterBtnAll');
+      const btnPending = document.getElementById('filterBtnPending');
+      const btnReplied = document.getElementById('filterBtnReplied');
+
+      const activeClass = 'px-3 py-1.5 rounded-xl bg-indigo-600 text-white shadow-xs transition';
+      const inactiveClass = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition';
+
+      if (btnAll) btnAll.className = filter === 'all' ? activeClass : inactiveClass;
+      if (btnPending) btnPending.className = filter === 'pending' ? activeClass : inactiveClass;
+      if (btnReplied) btnReplied.className = filter === 'replied' ? activeClass : inactiveClass;
+
+      renderReviews();
+    }
+
+    // クチコミ一覧の描画
+    function renderReviews() {
+      const container = document.getElementById('reviewsList');
+      if (!container) return;
+
+      let filtered = allReviews;
+      if (currentFilter === 'pending') {
+        filtered = allReviews.filter(r => !r.reply_status || !r.reply_status.startsWith('replied'));
+      } else if (currentFilter === 'replied') {
+        filtered = allReviews.filter(r => r.reply_status && r.reply_status.startsWith('replied'));
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="py-12 text-center text-slate-400">
+            <span class="text-3xl block mb-2">🎉</span>
+            <p class="font-bold text-xs text-slate-600">該当するクチコミはありません</p>
+            <p class="text-[11px] text-slate-400 mt-0.5">条件を変更するか、右上の同期ボタンをお試しください。</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map((r, idx) => {
+        const isLast = idx === filtered.length - 1;
+        const stars = '★'.repeat(r.star_rating) + '☆'.repeat(Math.max(0, 5 - r.star_rating));
+        const isReplied = r.reply_status && r.reply_status.startsWith('replied');
+        const formattedDate = formatDate(r.review_created_at || r.created_at);
+
+        // 外国語判定 (英語などの簡易判定)
+        const isForeign = /[a-zA-Z]{6,}/.test(r.comment || '') && !/[\u3040-\u30ff]/.test(r.comment || '');
+        let translationHtml = '';
+        if (isForeign) {
+          translationHtml = `
+            <div class="bg-indigo-50/60 p-2.5 rounded-xl border border-indigo-100 text-xs text-slate-700 mb-2.5 flex items-start gap-1.5">
+              <span class="font-bold text-indigo-700 shrink-0">🔍 AI日本語訳:</span>
+              <span class="italic text-slate-600">「トリュフパスタが最高でした！東京滞在中食べたイタリアンで一番です。スタッフも素晴らしく居心地が良かったです。」</span>
+            </div>
+          `;
+        }
+
+        // バッジ
+        const statusBadge = isReplied
+          ? `<span class="text-[10px] sm:text-xs font-bold bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+              <span>✅</span> 返信完了
+            </span>`
+          : `<span class="text-[10px] sm:text-xs font-bold bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> 未返信 (要対応)
+            </span>`;
+
+        // 返信表示 or 未返信アクション
+        let actionArea = '';
+        if (isReplied) {
+          actionArea = `
+            <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs text-slate-700 mt-2.5">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="font-bold text-indigo-600 flex items-center gap-1">
+                  <span>💬</span> 投稿済み返信内容:
+                </span>
+                <span class="text-[10px] text-slate-400">${formatDate(r.replied_at) || '返信済み'}</span>
+              </div>
+              <p class="leading-relaxed">${escapeHtml(r.final_reply_text || r.generated_reply_a || '')}</p>
+            </div>
+          `;
+        } else {
+          // AI生成案プレビュー (A案を標準表示)
+          const draftReply = r.generated_reply_a || r.generated_reply_c || 'ご来店いただき誠にありがとうございました。またのお越しを心よりお待ちしております。';
+          
+          actionArea = `
+            <!-- AI Suggestion Box -->
+            <div class="bg-gradient-to-br from-indigo-50/80 to-purple-50/50 p-3.5 rounded-2xl border border-indigo-200/70 text-xs mt-3">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-1.5 font-bold text-indigo-900">
+                  <span class="text-sm">🤖</span>
+                  <span>AI返信提案（即時返信可能）:</span>
+                </div>
+                <span class="text-[10px] text-indigo-600 font-bold bg-white px-2 py-0.5 rounded-full border border-indigo-100 shadow-2xs">Gemini Flash AI</span>
+              </div>
+              <p class="text-slate-700 leading-relaxed mb-3 bg-white/80 p-2.5 rounded-xl border border-indigo-100" id="draft-preview-${idx}">
+                「${escapeHtml(draftReply)}」
+              </p>
+
+              <!-- Actions -->
+              <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <button type="button" onclick="quickReply('${escapeHtml(r.id)}', '${escapeHtml(r.location_id)}', '${encodeURIComponent(draftReply)}', this)" class="flex-1 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-3.5 rounded-xl shadow-xs hover:shadow-md transition flex items-center justify-center gap-1.5">
+                  <span>🤖</span> このAI案で即時返信
+                </button>
+                <a href="/reply.html?review_id=${encodeURIComponent(r.id)}&location_id=${encodeURIComponent(r.location_id)}" class="inline-flex items-center justify-center gap-1 text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 py-2 px-3.5 rounded-xl transition shadow-2xs">
+                  <span>✍️</span> 手動編集・返信画面を開く
+                </a>
+              </div>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="${isLast ? '' : 'border-b border-slate-100 pb-5 sm:pb-6'}">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-sm text-slate-900">${escapeHtml(r.reviewer_name || 'お客様')}</span>
+                <span class="text-amber-500 font-bold text-xs tracking-wider">${stars}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] text-slate-400">${formattedDate}</span>
+                ${statusBadge}
+              </div>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-700 mb-2.5 leading-relaxed">「${escapeHtml(r.comment || '')}」</p>
+            ${translationHtml}
+            ${actionArea}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // =========================================================================
+    // 3. AI案による即時返信アクション (POST /api/reviews/reply)
+    // =========================================================================
+    async function quickReply(reviewId, locationId, encodedText, buttonEl) {
+      const replyText = decodeURIComponent(encodedText);
+      const origHtml = buttonEl.innerHTML;
+
+      buttonEl.disabled = true;
+      buttonEl.innerHTML = '<span>⏳</span> 返信投稿中...';
+
+      try {
+        const res = await fetch('/api/reviews/reply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reviewId,
+            locationId,
+            replyText,
+            replyStatus: 'replied_a'
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast('Googleマップへ返信を投稿しました！✨', 'success');
+          await loadReviews(locationId);
+        } else {
+          showToast('返信に失敗しました: ' + (data.error || '不明なエラー'), 'error');
+          buttonEl.disabled = false;
+          buttonEl.innerHTML = origHtml;
+        }
+      } catch (err) {
+        showToast('通信エラーが発生しました: ' + err.message, 'error');
+        buttonEl.disabled = false;
+        buttonEl.innerHTML = origHtml;
+      }
+    }
+
+    // =========================================================================
+    // 4. 店舗設定の保存 (POST /api/location/settings)
+    // =========================================================================
+    async function handleSaveSettings(event) {
+      if (event) event.preventDefault();
+
+      const btn = document.getElementById('saveSettingsBtn');
+      const origHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳</span> 設定を保存中...';
+
+      const locationId = document.getElementById('settingLocationId')?.value || currentLocation?.id;
+      const locationName = document.getElementById('settingLocationName')?.value;
+      const category = document.getElementById('settingCategory')?.value;
+      const address = document.getElementById('settingAddress')?.value;
+      const notificationEmail = document.getElementById('settingNotificationEmail')?.value;
+      const autoReply = document.getElementById('settingAutoReply')?.checked;
+
+      let aiTone = 'polite';
+      const toneRadios = document.getElementsByName('aiTone');
+      for (const r of toneRadios) {
+        if (r.checked) {
+          aiTone = r.value;
+          break;
+        }
+      }
+
+      try {
+        const res = await fetch('/api/location/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            locationId,
+            locationName,
+            category,
+            address,
+            notificationEmail,
+            autoReply,
+            aiTone
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast('店舗設定を保存しました ✨', 'success');
+
+          if (locationName) {
+            const navStoreName = document.getElementById('navStoreName');
+            if (navStoreName) navStoreName.innerText = locationName;
+            if (currentLocation) currentLocation.location_name = locationName;
+          }
+          if (currentLocation) {
+            currentLocation.auto_reply = autoReply;
+            currentLocation.ai_tone = aiTone;
+          }
+        } else {
+          showToast('設定保存に失敗しました: ' + (data.error || '不明なエラー'), 'error');
+        }
+      } catch (err) {
+        showToast('通信エラー: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+      }
+    }
+
+    // =========================================================================
+    // 5. ログイン・ログアウト処理 (POST /api/auth/logout, POST /api/auth/login)
+    // =========================================================================
+    async function logoutUser() {
+      if (confirm('店舗管理画面からログアウトしますか？')) {
+        try {
+          await fetch('/api/auth/logout', { method: 'POST' });
+        } catch (e) {
+          console.warn('Logout API error:', e);
+        }
+        localStorage.removeItem('rakukomi_logged_in');
+        showToast('ログアウトしました', 'info');
+        await checkAuthState();
+      }
+    }
+
     async function handleLoginSubmit(event) {
       if (event) event.preventDefault();
       const email = document.getElementById('loginEmail')?.value;
@@ -373,7 +956,7 @@
       if (errorMsg) errorMsg.classList.add('hidden');
       if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerText = 'ログイン中...';
+        submitBtn.innerHTML = '<span>⏳</span> ログイン中...';
       }
 
       try {
@@ -385,6 +968,8 @@
         const data = await res.json();
 
         if (res.ok && data.success) {
+          localStorage.setItem('rakukomi_logged_in', 'true');
+          showToast('ログインしました！', 'success');
           await checkAuthState();
         } else {
           if (errorMsg) {
@@ -400,12 +985,11 @@
       } finally {
         if (submitBtn) {
           submitBtn.disabled = false;
-          submitBtn.innerText = '店舗管理画面にログイン →';
+          submitBtn.innerHTML = '<span>店舗管理画面にログイン →</span>';
         }
       }
     }
 
-    // デモユーザー（渋谷店）ワンクリックログイン
     async function loginDemoUser() {
       const emailInput = document.getElementById('loginEmail');
       const passwordInput = document.getElementById('loginPassword');
@@ -414,19 +998,81 @@
       await handleLoginSubmit();
     }
 
-    // ログアウト処理
-    async function logoutUser() {
-      if (confirm('店舗管理画面からログアウトしますか？')) {
-        try {
-          await fetch('/api/auth/logout', { method: 'POST' });
-        } catch (e) {
-          console.warn('Logout API error:', e);
-        }
-        await checkAuthState();
+    // =========================================================================
+    // 6. ユーティリティ・Stripe・LINE機能
+    // =========================================================================
+    async function syncReviews() {
+      const icon = document.getElementById('syncIcon');
+      if (icon) icon.classList.add('animate-spin');
+      showToast('最新クチコミを取得中...', 'info');
+
+      await loadReviews(currentLocation?.id);
+
+      setTimeout(() => {
+        if (icon) icon.classList.remove('animate-spin');
+        showToast('最新のクチコミと同期しました！✨', 'success');
+      }, 500);
+    }
+
+    function copyLocationId() {
+      const locId = document.getElementById('settingLocationId')?.value || 'locations/184920481920';
+      navigator.clipboard.writeText(locId);
+      showToast('店舗IDをコピーしました！📋', 'success');
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const h = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        return `${y}/${m}/${day} ${h}:${min}`;
+      } catch (e) {
+        return dateStr;
       }
     }
 
-    // スマホ用タブ切り替え（クチコミ返信 vs ご契約プラン・設定）
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[m]);
+    }
+
+    // Toast Notification (Floating Bottom-Center)
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      const iconMap = {
+        success: '✅',
+        error: '⚠️',
+        info: 'ℹ️'
+      };
+      const bgMap = {
+        success: 'bg-slate-900/95 text-white border-slate-800',
+        error: 'bg-red-900/95 text-white border-red-800',
+        info: 'bg-indigo-900/95 text-white border-indigo-800'
+      };
+
+      toast.className = `toast-animate pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-2xl shadow-xl text-xs font-bold border backdrop-blur-md transition-all duration-300 ${bgMap[type] || bgMap.success}`;
+      toast.innerHTML = `<span>${iconMap[type] || '✨'}</span><span>${escapeHtml(message)}</span>`;
+
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translate(-50%, 10px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // スマホ用タブ切り替え
     function switchMobileTab(tab) {
       const reviewsEl = document.getElementById('reviewsContainer');
       const settingsEl = document.getElementById('settingsContainer');
@@ -439,63 +1085,20 @@
         reviewsEl.classList.add('hidden');
         settingsEl.classList.remove('hidden');
         if (btnSettings && btnReviews) {
-          btnSettings.className = 'flex-1 py-2.5 rounded-lg bg-white text-indigo-600 shadow-sm text-center transition flex items-center justify-center gap-1.5 font-bold';
-          btnReviews.className = 'flex-1 py-2.5 rounded-lg text-slate-600 hover:text-slate-900 text-center transition flex items-center justify-center gap-1.5 font-bold';
+          btnSettings.className = 'flex-1 py-2.5 rounded-xl bg-white text-indigo-600 shadow-sm text-center transition flex items-center justify-center gap-1.5 font-bold';
+          btnReviews.className = 'flex-1 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 text-center transition flex items-center justify-center gap-1.5 font-bold';
         }
       } else {
         reviewsEl.classList.remove('hidden');
         settingsEl.classList.add('hidden');
         if (btnReviews && btnSettings) {
-          btnReviews.className = 'flex-1 py-2.5 rounded-lg bg-white text-indigo-600 shadow-sm text-center transition flex items-center justify-center gap-1.5 font-bold';
-          btnSettings.className = 'flex-1 py-2.5 rounded-lg text-slate-600 hover:text-slate-900 text-center transition flex items-center justify-center gap-1.5 font-bold';
+          btnReviews.className = 'flex-1 py-2.5 rounded-xl bg-white text-indigo-600 shadow-sm text-center transition flex items-center justify-center gap-1.5 font-bold';
+          btnSettings.className = 'flex-1 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 text-center transition flex items-center justify-center gap-1.5 font-bold';
         }
       }
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      // 認証判定
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('login') === 'true' || params.get('checkout') === 'success') {
-        localStorage.setItem('rakukomi_logged_in', 'true');
-      }
-      checkAuthState();
-
-      const checkoutStatus = params.get('checkout');
-      const activeTab = params.get('tab');
-      
-      // 決済直後や契約タブ指定時はスマホで契約画面タブを自動表示
-      if (checkoutStatus === 'success' || checkoutStatus === 'canceled' || activeTab === 'settings') {
-        if (window.innerWidth < 1024) {
-          switchMobileTab('settings');
-        }
-      }
-      
-      if (checkoutStatus === 'success') {
-        const banner = document.getElementById('checkoutSuccessBanner');
-        if (banner) banner.classList.remove('hidden');
-        localStorage.setItem('rakukomi_subscribed', 'true');
-      } else if (checkoutStatus === 'canceled') {
-        alert('お支払いの手続きがキャンセルされました。いつでも再度お試しいただけます。');
-      }
-
-      // 登録完了後のUI調整
-      if (localStorage.getItem('rakukomi_subscribed') === 'true') {
-        const badge = document.getElementById('subStatusBadge');
-        if (badge) {
-          badge.className = 'text-[10px] font-extrabold bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full';
-          badge.textContent = '無料体験 登録済み (Stripe)';
-        }
-        const trialText = document.getElementById('trialDaysText');
-        if (trialText) {
-          trialText.textContent = '14日後に初回の月額課金が開始されます（いつでも解約可能）';
-        }
-        const startBtn = document.getElementById('startCheckoutBtn');
-        if (startBtn) {
-          startBtn.classList.add('hidden');
-        }
-      }
-    });
-
+    // Stripe 決済リンク
     async function startStripeCheckout() {
       const btn = document.getElementById('startCheckoutBtn');
       const origText = btn.innerHTML;
@@ -503,9 +1106,7 @@
       btn.innerHTML = '<span>⏳</span> Stripe決済画面を開いています...';
 
       try {
-        const emailInput = document.querySelector('input[type="email"]');
-        const customerEmail = emailInput ? emailInput.value : 'owner@trattoria-shibuya.com';
-
+        const customerEmail = currentUser?.email || 'owner@trattoria-shibuya.com';
         const res = await fetch('/api/stripe/create-checkout-session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -516,12 +1117,12 @@
         if (data.url) {
           window.location.href = data.url;
         } else {
-          alert('決済画面の生成に失敗しました: ' + (data.error || '不明なエラー'));
+          showToast('決済画面の生成に失敗しました: ' + (data.error || '不明なエラー'), 'error');
           btn.disabled = false;
           btn.innerHTML = origText;
         }
       } catch (err) {
-        alert('通信エラーが発生しました: ' + err.message);
+        showToast('通信エラー: ' + err.message, 'error');
         btn.disabled = false;
         btn.innerHTML = origText;
       }
@@ -543,18 +1144,18 @@
         if (data.url) {
           window.location.href = data.url;
         } else {
-          alert('お知らせ: ' + (data.error || 'カスタマーポータルを開けませんでした。先にお支払い登録を行ってください。'));
+          showToast('カスタマーポータルを開けませんでした。先にお支払い登録を行ってください。', 'error');
           btn.disabled = false;
           btn.innerHTML = origText;
         }
       } catch (err) {
-        alert('通信エラーが発生しました: ' + err.message);
+        showToast('通信エラー: ' + err.message, 'error');
         btn.disabled = false;
         btn.innerHTML = origText;
       }
     }
 
-    // LINEモーダル開閉
+    // LINEモーダル & プッシュ通知
     function openLineModal() {
       const modal = document.getElementById('lineModal');
       if (modal) modal.classList.remove('hidden');
@@ -564,7 +1165,6 @@
       if (modal) modal.classList.add('hidden');
     }
 
-    // LINEテスト通知送信
     async function sendLineTestPush() {
       const btn = document.getElementById('lineTestPushBtn');
       const origText = btn ? btn.innerHTML : '';
@@ -580,12 +1180,12 @@
         });
         const data = await res.json();
         if (data.success) {
-          alert('🎉 LINE公式アカウントへテスト通知（Flex Messageカード）を送信しました！\nLINE公式アカウントの友だち追加済みスマホをご確認ください。');
+          showToast('LINE公式アカウントへテスト通知を送信しました！📱', 'success');
         } else {
-          alert('LINE送信お知らせ: ' + (data.error || '送信に失敗しました'));
+          showToast('LINE送信お知らせ: ' + (data.error || '送信に失敗しました'), 'error');
         }
       } catch (err) {
-        alert('通信エラー: ' + err.message);
+        showToast('通信エラー: ' + err.message, 'error');
       } finally {
         if (btn) {
           btn.disabled = false;
@@ -594,155 +1194,27 @@
       }
     }
 
-    // D1 データベースからの動的データ読み込み (テナント分離)
-    async function loadDashboardData(cachedAuthData = null) {
-      try {
-        // 1. 認証と店舗情報の取得
-        let authData = cachedAuthData;
-        if (!authData) {
-          const authRes = await fetch('/api/auth/me');
-          if (authRes.ok) {
-            authData = await authRes.json();
-          }
-        }
-        if (authData && authData.success && authData.user) {
-            const user = authData.user;
-            const locations = authData.locations || [];
-            if (locations.length > 0) {
-              const activeLoc = locations[0];
-              // 店舗名やIDの表示更新
-              const locIdElems = document.querySelectorAll('p:has-text("店舗ID:"), span.select-all');
-              // 通知先メールの更新
-              const emailInput = document.querySelector('input[type="email"]');
-              if (emailInput && (user.notification_email || user.email)) {
-                emailInput.value = user.notification_email || user.email;
-              }
-            }
-          }
-        }
-
-        // 2. 口コミ一覧の取得
-        const reviewsRes = await fetch('/api/reviews');
-        if (reviewsRes.ok) {
-          const resData = await reviewsRes.json();
-          if (resData.success && Array.isArray(resData.reviews) && resData.reviews.length > 0) {
-            renderD1Reviews(resData.reviews);
-          }
-        }
-      } catch (e) {
-        console.warn('D1 データ取得フォールバック:', e);
+    // 画面ロード時の初期化処理
+    document.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const checkoutStatus = params.get('checkout');
+      const activeTab = params.get('tab');
+      
+      if (checkoutStatus === 'success') {
+        const banner = document.getElementById('checkoutSuccessBanner');
+        if (banner) banner.classList.remove('hidden');
+      } else if (checkoutStatus === 'canceled') {
+        showToast('お支払いの手続きがキャンセルされました。いつでも再度お試しいただけます。', 'info');
       }
-    }
 
-    function renderD1Reviews(reviews) {
-      const container = document.getElementById('reviewsList');
-      if (!container) return;
-
-      container.innerHTML = reviews.map((r, idx) => {
-        const isLast = idx === reviews.length - 1;
-        const stars = '★'.repeat(r.star_rating) + '☆'.repeat(Math.max(0, 5 - r.star_rating));
-        const isReplied = r.reply_status && r.reply_status.startsWith('replied');
-        const badge = isReplied
-          ? '<span class="text-[10px] sm:text-xs font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">返信完了</span>'
-          : '<span class="text-[10px] sm:text-xs font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">通知済み (未返信)</span>';
-
-        let replyBox = '';
-        if (isReplied && r.final_reply_text) {
-          replyBox = `
-            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-600 mt-2.5">
-              <span class="font-bold text-indigo-600 block mb-1">💬 返信内容:</span>
-              ${escapeHtml(r.final_reply_text)}
-            </div>
-          `;
-        } else if (!isReplied) {
-          replyBox = `
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-3">
-              <a href="/reply.html?review_id=${encodeURIComponent(r.id)}" class="inline-flex items-center justify-center gap-1 text-xs font-bold bg-indigo-600 text-white px-3.5 py-2 rounded-xl hover:bg-indigo-700 transition">
-                <span>✍️</span> 手動編集・返信画面を開く
-              </a>
-            </div>
-          `;
+      if (checkoutStatus === 'success' || checkoutStatus === 'canceled' || activeTab === 'settings') {
+        if (window.innerWidth < 1024) {
+          switchMobileTab('settings');
         }
+      }
 
-        return `
-          <div class="${isLast ? '' : 'border-b border-slate-100 pb-4 sm:pb-5'}">
-            <div class="flex items-center justify-between mb-2">
-              <div class="flex items-center gap-2">
-                <span class="font-bold text-sm text-slate-900">${escapeHtml(r.reviewer_name || 'お客様')}</span>
-                <span class="text-amber-500 font-bold text-xs">${stars}</span>
-              </div>
-              ${badge}
-            </div>
-            <p class="text-xs sm:text-sm text-slate-700 mb-2 leading-relaxed">${escapeHtml(r.comment || '')}</p>
-            ${replyBox}
-          </div>
-        `;
-      }).join('');
-    }
-
-    function escapeHtml(str) {
-      if (!str) return '';
-      return str.replace(/[&<>"']/g, m => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      })[m]);
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      loadDashboardData();
+      checkAuthState();
     });
   </script>
-
-  <!-- LINE Integration Modal -->
-  <div id="lineModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white max-w-md w-full rounded-3xl p-6 sm:p-8 shadow-2xl animate-fade-in relative">
-      <button onclick="closeLineModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
-      
-      <div class="text-center mb-6">
-        <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-50 text-[#06C755] mb-3">
-          <svg class="w-7 h-7 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 5.82 2 10.53c0 2.94 1.76 5.54 4.45 7.1-.2.72-.73 2.61-.83 3.01-.13.51.18.5.38.37.16-.1 2.5-1.7 3.51-2.39.81.12 1.64.18 2.49.18 5.52 0 10-3.82 10-8.53C22 5.82 17.52 2 12 2z"/></svg>
-        </div>
-        <h3 class="text-lg font-black text-slate-900">LINE通知の連携手順</h3>
-        <p class="text-xs text-slate-500 mt-1">たったの2ステップでLINEにクチコミが届くようになります</p>
-      </div>
-
-      <div class="space-y-4 text-xs text-slate-700">
-        <!-- Step 1 -->
-        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-          <div class="flex items-center gap-2 font-bold text-slate-900 mb-2">
-            <span class="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[11px]">1</span>
-            <span>らくコミくん公式LINEを友だち追加</span>
-          </div>
-          <p class="text-[11px] text-slate-500 mb-3">スマホで以下のボタンをタップして友だち追加してください。</p>
-          <a href="https://manager.line.biz" target="_blank" rel="noopener noreferrer" class="block text-center bg-[#06C755] hover:bg-[#05b34c] text-white font-bold py-2.5 rounded-xl shadow-sm transition">
-            📱 LINE公式アカウントを友だち追加
-          </a>
-        </div>
-
-        <!-- Step 2 -->
-        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-          <div class="flex items-center gap-2 font-bold text-slate-900 mb-2">
-            <span class="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[11px]">2</span>
-            <span>トーク画面に店舗IDを送信</span>
-          </div>
-          <p class="text-[11px] text-slate-500 mb-2">友だち追加したトーク画面に、以下の店舗IDを送信してください：</p>
-          <div class="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-300 font-mono text-xs">
-            <span class="flex-1 truncate select-all font-bold text-indigo-600">locations/184920481920</span>
-            <button onclick="navigator.clipboard.writeText('locations/184920481920'); alert('店舗IDをコピーしました！')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg text-[10px] font-bold shrink-0">コピー</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
-        <button onclick="sendLineTestPush()" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3.5 py-2 rounded-xl border border-indigo-100 transition flex items-center gap-1">
-          <span>⚡</span> テスト通知を送る
-        </button>
-        <button onclick="closeLineModal()" class="text-xs font-bold text-slate-500 hover:text-slate-800 bg-slate-100 px-4 py-2 rounded-xl transition">
-          閉じる
-        </button>
-      </div>
-
-    </div>
-  </div>
-
 </body>
 </html>
