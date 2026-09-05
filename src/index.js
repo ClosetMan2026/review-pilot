@@ -316,7 +316,15 @@ export default {
         }
 
         const body = await request.json();
-        const { locationId, locationName, category, address, notificationEmail, lineUserId, autoReply, aiTone } = body;
+        const locationId = body.locationId || body.location_id;
+        const locationName = body.locationName || body.location_name;
+        const category = body.category;
+        const address = body.address;
+        const notificationEmail = body.notificationEmail || body.notification_email;
+        const lineUserId = body.lineUserId || body.line_user_id;
+        const autoReply = body.autoReply !== undefined ? body.autoReply : body.auto_reply;
+        const aiTone = body.aiTone || body.ai_tone;
+
         const result = await updateLocationSettings(env.DB, locationId, user.id, {
           locationName, category, address, notificationEmail, lineUserId, autoReply, aiTone
         });
@@ -340,7 +348,10 @@ export default {
         }
 
         const body = await request.json();
-        const { reviewId, locationId, replyText, replyStatus } = body;
+        const reviewId = body.reviewId || body.review_id;
+        const locationId = body.locationId || body.location_id;
+        const replyText = body.replyText || body.reply_text;
+        const replyStatus = body.replyStatus || body.reply_status;
 
         // 店舗所有権を事前チェック
         const location = await getLocationById(env.DB, locationId, user.id);
