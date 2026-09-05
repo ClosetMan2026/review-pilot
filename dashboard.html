@@ -30,21 +30,29 @@
         Googleビジネスプロフィールと連携して、Googleマップのクチコミ自動検知・AI返信を始めましょう。
       </p>
 
-      <!-- Sign in with Google Button (Google公式スタイル準拠) -->
-      <button onclick="loginUser('google')" class="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-50 text-slate-700 font-bold py-3.5 px-4 rounded-2xl border-2 border-slate-200 hover:border-slate-300 shadow-sm hover:shadow transition transform hover:-translate-y-0.5 mb-3.5">
-        <!-- Google "G" Logo SVG -->
-        <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-        </svg>
-        <span class="text-sm">Google でログイン</span>
-      </button>
+      <form id="loginForm" onsubmit="handleLoginSubmit(event)" class="space-y-4 mb-5 text-left">
+        <div id="loginErrorMsg" class="hidden p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-bold leading-relaxed"></div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">メールアドレス</label>
+          <input type="email" id="loginEmail" required placeholder="owner@trattoria-shibuya.com" value="owner@trattoria-shibuya.com" class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 transition">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">パスワード</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••" value="password123" class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 transition">
+        </div>
+        <button type="submit" id="loginSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl text-xs shadow-md hover:shadow-lg transition">
+          店舗管理画面にログイン →
+        </button>
+      </form>
+
+      <div class="relative flex items-center justify-center my-4">
+        <div class="border-t border-slate-200 w-full"></div>
+        <span class="bg-white px-3 text-[11px] font-bold text-slate-400 absolute">または</span>
+      </div>
 
       <!-- Demo Login Option -->
-      <button onclick="loginUser('demo')" class="w-full text-xs font-bold text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-slate-200 py-3 rounded-2xl transition mb-6">
-        <span>👀</span> デモ店舗（渋谷店）として管理画面を確認する
+      <button type="button" onclick="loginDemoUser()" class="w-full text-xs font-bold text-slate-700 hover:text-indigo-600 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-xl transition mb-4 flex items-center justify-center gap-1.5">
+        <span>👀</span> 渋谷店デモとしてワンタップログイン
       </button>
 
       <div class="border-t border-slate-100 pt-5 text-xs text-slate-400">
@@ -328,33 +336,93 @@
 
   <!-- Stripe Checkout & Customer Portal & Mobile Tab & Auth Logic -->
   <script>
-    // 認証状態の判定と画面切り替え
-    function checkAuthState() {
-      // 初期状態またはログアウト後は未ログイン画面を表示
-      const isLoggedIn = localStorage.getItem('rakukomi_logged_in') === 'true';
+    // 認証状態の判定と画面切り替え (サーバーサイドセッション照合)
+    async function checkAuthState() {
       const loginView = document.getElementById('loginView');
       const dashboardView = document.getElementById('dashboardView');
 
-      if (isLoggedIn) {
-        if (loginView) loginView.classList.add('hidden');
-        if (dashboardView) dashboardView.classList.remove('hidden');
-      } else {
-        if (loginView) loginView.classList.remove('hidden');
-        if (dashboardView) dashboardView.classList.add('hidden');
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.user) {
+            if (loginView) loginView.classList.add('hidden');
+            if (dashboardView) dashboardView.classList.remove('hidden');
+            loadDashboardData(data);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Auth check error:', e);
+      }
+
+      // 未認証時
+      if (loginView) loginView.classList.remove('hidden');
+      if (dashboardView) dashboardView.classList.add('hidden');
+    }
+
+    // ログインフォーム送信処理
+    async function handleLoginSubmit(event) {
+      if (event) event.preventDefault();
+      const email = document.getElementById('loginEmail')?.value;
+      const password = document.getElementById('loginPassword')?.value;
+      const errorMsg = document.getElementById('loginErrorMsg');
+      const submitBtn = document.getElementById('loginSubmitBtn');
+
+      if (!email || !password) return;
+      if (errorMsg) errorMsg.classList.add('hidden');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'ログイン中...';
+      }
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          await checkAuthState();
+        } else {
+          if (errorMsg) {
+            errorMsg.innerText = data.error || 'メールアドレスまたはパスワードが正しくありません。';
+            errorMsg.classList.remove('hidden');
+          }
+        }
+      } catch (err) {
+        if (errorMsg) {
+          errorMsg.innerText = '通信エラーが発生しました: ' + err.message;
+          errorMsg.classList.remove('hidden');
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerText = '店舗管理画面にログイン →';
+        }
       }
     }
 
-    // ログイン処理（Googleまたはデモ）
-    function loginUser(mode) {
-      localStorage.setItem('rakukomi_logged_in', 'true');
-      checkAuthState();
+    // デモユーザー（渋谷店）ワンクリックログイン
+    async function loginDemoUser() {
+      const emailInput = document.getElementById('loginEmail');
+      const passwordInput = document.getElementById('loginPassword');
+      if (emailInput) emailInput.value = 'owner@trattoria-shibuya.com';
+      if (passwordInput) passwordInput.value = 'password123';
+      await handleLoginSubmit();
     }
 
     // ログアウト処理
-    function logoutUser() {
+    async function logoutUser() {
       if (confirm('店舗管理画面からログアウトしますか？')) {
-        localStorage.removeItem('rakukomi_logged_in');
-        checkAuthState();
+        try {
+          await fetch('/api/auth/logout', { method: 'POST' });
+        } catch (e) {
+          console.warn('Logout API error:', e);
+        }
+        await checkAuthState();
       }
     }
 
@@ -527,13 +595,17 @@
     }
 
     // D1 データベースからの動的データ読み込み (テナント分離)
-    async function loadDashboardData() {
+    async function loadDashboardData(cachedAuthData = null) {
       try {
         // 1. 認証と店舗情報の取得
-        const authRes = await fetch('/api/auth/me');
-        if (authRes.ok) {
-          const authData = await authRes.json();
-          if (authData.success && authData.user) {
+        let authData = cachedAuthData;
+        if (!authData) {
+          const authRes = await fetch('/api/auth/me');
+          if (authRes.ok) {
+            authData = await authRes.json();
+          }
+        }
+        if (authData && authData.success && authData.user) {
             const user = authData.user;
             const locations = authData.locations || [];
             if (locations.length > 0) {

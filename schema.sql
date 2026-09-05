@@ -4,7 +4,10 @@
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
+    password_hash TEXT, -- PBKDF2 hash (SHA-256)
+    password_salt TEXT, -- 16-byte random salt in hex
     name TEXT,
+    plan TEXT DEFAULT 'standard', -- trialing, standard, pro, enterprise
     stripe_customer_id TEXT,
     stripe_subscription_id TEXT,
     subscription_status TEXT DEFAULT 'trialing', -- trialing, active, past_due, canceled

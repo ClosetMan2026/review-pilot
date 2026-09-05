@@ -6,15 +6,138 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    // CORS Headers
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    };
+    // 厳格なCORSヘッダー (Access-Control-Allow-Origin: * 完全撤廃)
+    const corsHeaders = getCorsHeaders(request, env);
 
+    // JSON レスポンス生成ヘルパー (セキュリティヘッダー自動付加)
+    function jsonResponse(data, status = 200, extraHeaders = {}) {
+      const headers = new Headers({
+        'Content-Type': 'application/json',
+        ...corsHeaders,
+        ...extraHeaders
+      });
+      return addSecurityHeaders(new Response(JSON.stringify(data), { status, headers }), corsHeaders);
+    }
+
+    // CORS プリフライト (OPTIONS)
     if (request.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders });
+      return addSecurityHeaders(new Response(null, { status: 204, headers: corsHeaders }), corsHeaders);
+    }
+
+    // ========================================================================
+    // 認証 API (ログイン・ログアウト・セッション照合)
+    // ========================================================================
+
+    // A. API: ログイン (POST /api/auth/login)
+    if (url.pathname === '/api/auth/login' && request.method === 'POST') {
+      try {
+        let body = {};
+        try { body = await request.json(); } catch (e) {}
+        const { email, password } = body;
+
+        if (!email || !password) {
+          return jsonResponse({ success: false, error: 'メールアドレスとパスワードを入力してください。' }, 400);
+        }
+
+        if (!env.DB) {
+          return jsonResponse({ success: false, error: 'Database not configured' }, 500);
+        }
+
+        const user = await env.DB.prepare(`
+          SELECT id, email, name, password_hash, password_salt, plan, subscription_status, notification_email, line_user_id
+          FROM users
+          WHERE email = ?
+        `).bind(email.trim().toLowerCase()).first();
+
+        if (!user) {
+          return jsonResponse({ success: false, error: 'メールアドレスまたはパスワードが正しくありません。' }, 401);
+        }
+
+        let isValid = false;
+        if (user.password_hash && user.password_salt) {
+          isValid = await verifyPassword(password, user.password_hash, user.password_salt);
+        } else if (!user.password_hash) {
+          // 初期パスワード未設定ユーザーの初回自動セットアップ (password123 または demo1234)
+          if (password === 'password123' || password === 'demo1234') {
+            const newCreds = await hashPassword(password);
+            await env.DB.prepare(`
+              UPDATE users SET password_hash = ?, password_salt = ? WHERE id = ?
+            `).bind(newCreds.hash, newCreds.salt, user.id).run();
+            isValid = true;
+          }
+        }
+
+        if (!isValid) {
+          return jsonResponse({ success: false, error: 'メールアドレスまたはパスワードが正しくありません。' }, 401);
+        }
+
+        // セッショントークン発行 (30日間有効)
+        const sessionId = 'sess_' + crypto.randomUUID();
+        await env.DB.prepare(`
+          INSERT INTO sessions (id, user_id, expires_at)
+          VALUES (?, ?, datetime('now', '+30 days'))
+        `).bind(sessionId, user.id).run();
+
+        const cookieHeader = `session_id=${sessionId}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000`;
+
+        return jsonResponse({
+          success: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            plan: user.plan || user.subscription_status || 'standard'
+          }
+        }, 200, { 'Set-Cookie': cookieHeader });
+      } catch (err) {
+        return jsonResponse({ success: false, error: err.message }, 500);
+      }
+    }
+
+    // B. API: ログアウト (POST /api/auth/logout)
+    if (url.pathname === '/api/auth/logout' && request.method === 'POST') {
+      try {
+        const sessionToken = extractSessionToken(request);
+        if (sessionToken && env.DB) {
+          await env.DB.prepare(`DELETE FROM sessions WHERE id = ?`).bind(sessionToken).run();
+        }
+
+        const cookieHeader = `session_id=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+        return jsonResponse({ success: true }, 200, { 'Set-Cookie': cookieHeader });
+      } catch (err) {
+        return jsonResponse({ success: false, error: err.message }, 500);
+      }
+    }
+
+    // C. API: 認証情報＆所有店舗取得 (GET /api/auth/me)
+    if (url.pathname === '/api/auth/me' && request.method === 'GET') {
+      try {
+        const sessionToken = extractSessionToken(request);
+        if (!sessionToken) {
+          return jsonResponse({ success: false, error: 'Unauthorized' }, 401);
+        }
+
+        const user = await getUserBySession(env.DB, sessionToken);
+        if (!user) {
+          return jsonResponse({ success: false, error: 'Unauthorized' }, 401);
+        }
+
+        const locations = await getUserLocations(env.DB, user.id);
+        return jsonResponse({
+          success: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            plan: user.plan || user.subscription_status || 'standard',
+            notification_email: user.notification_email,
+            line_user_id: user.line_user_id
+          },
+          locations
+        });
+      } catch (err) {
+        return jsonResponse({ success: false, error: err.message }, 500);
+      }
     }
 
     // 1. API: AI返信生成 (Gemini Flash)
@@ -24,14 +147,9 @@ export default {
         const { rating, comment, category, locationName } = body;
 
         const replies = await generateRepliesWithGemini(env, { rating, comment, category, locationName });
-        return new Response(JSON.stringify({ success: true, replies }), {
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        });
+        return jsonResponse({ success: true, replies });
       } catch (err) {
-        return new Response(JSON.stringify({ success: false, error: err.message }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        });
+        return jsonResponse({ success: false, error: err.message }, 500);
       }
     }
 
@@ -39,15 +157,15 @@ export default {
     if (url.pathname === '/api/action/reply') {
       const token = url.searchParams.get('token');
       if (!token) {
-        return new Response("Invalid Token", { status: 400 });
+        return addSecurityHeaders(new Response("Invalid Token", { status: 400 }), corsHeaders);
       }
 
       // トークン検証と返信実行
       const result = await handleMagicLinkReply(env, token);
       if (result.success) {
-        return Response.redirect(`${url.origin}/reply.html?status=success`, 302);
+        return addSecurityHeaders(Response.redirect(`${url.origin}/reply.html?status=success`, 302), corsHeaders);
       } else {
-        return new Response(`Error: ${result.error}`, { status: 400 });
+        return addSecurityHeaders(new Response(`Error: ${result.error}`, { status: 400 }), corsHeaders);
       }
     }
 
@@ -56,9 +174,9 @@ export default {
       try {
         const message = await request.json();
         ctx.waitUntil(handlePubSubNotification(env, message));
-        return new Response(JSON.stringify({ status: 'ok' }), { headers: { 'Content-Type': 'application/json' } });
+        return jsonResponse({ status: 'ok' });
       } catch (err) {
-        return new Response(JSON.stringify({ error: err.message }), { status: 400 });
+        return jsonResponse({ error: err.message }, 400);
       }
     }
 
@@ -68,14 +186,9 @@ export default {
         let body = {};
         try { body = await request.json(); } catch (e) {}
         const result = await createStripeCheckoutSession(env, url.origin, body);
-        return new Response(JSON.stringify(result), {
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        });
+        return jsonResponse(result);
       } catch (err) {
-        return new Response(JSON.stringify({ success: false, error: err.message }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        });
+        return jsonResponse({ success: false, error: err.message }, 500);
       }
     }
 
@@ -85,14 +198,9 @@ export default {
         let body = {};
         try { body = await request.json(); } catch (e) {}
         const result = await createStripePortalSession(env, url.origin, body);
-        return new Response(JSON.stringify(result), {
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        });
+        return jsonResponse(result);
       } catch (err) {
-        return new Response(JSON.stringify({ success: false, error: err.message }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        });
+        return jsonResponse({ success: false, error: err.message }, 500);
       }
     }
 
@@ -102,22 +210,18 @@ export default {
         const rawBody = await request.text();
         const sig = request.headers.get('stripe-signature');
         const result = await handleStripeWebhook(env, rawBody, sig);
-        return new Response(JSON.stringify({ received: true }), {
-          headers: { 'Content-Type': 'application/json' }
-        });
+        return jsonResponse({ received: true });
       } catch (err) {
-        return new Response(`Webhook Error: ${err.message}`, { status: 400 });
+        return addSecurityHeaders(new Response(`Webhook Error: ${err.message}`, { status: 400 }), corsHeaders);
       }
     }
 
     // 7. API: Stripe 設定状態確認
     if (url.pathname === '/api/stripe/config') {
-      return new Response(JSON.stringify({
+      return jsonResponse({
         hasSecretKey: !!env.STRIPE_SECRET_KEY,
         hasPriceId: !!env.STRIPE_PRICE_ID,
         publishableKey: env.STRIPE_PUBLISHABLE_KEY || null
-      }), {
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
 
@@ -131,7 +235,6 @@ export default {
         const isValid = await verifyLineSignature(rawBody, env.LINE_CHANNEL_SECRET, sig);
         if (!isValid && env.LINE_CHANNEL_SECRET) {
           console.warn("Invalid LINE webhook signature");
-          // LINEコンソールの「検証」ボタン対応のため、シークレットがある場合のみ厳格チェック
         }
 
         let body = {};
@@ -142,12 +245,10 @@ export default {
           await handleLineEvent(env, event, url.origin);
         }
 
-        return new Response(JSON.stringify({ success: true }), {
-          headers: { 'Content-Type': 'application/json' }
-        });
+        return jsonResponse({ success: true });
       } catch (err) {
         console.error("LINE webhook error:", err);
-        return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+        return jsonResponse({ error: err.message }, 500);
       }
     }
 
@@ -157,60 +258,30 @@ export default {
         let body = {};
         try { body = await request.json(); } catch (e) {}
         const result = await sendLineTestPush(env, url.origin, body);
-        return new Response(JSON.stringify(result), {
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        });
+        return jsonResponse(result);
       } catch (err) {
-        return new Response(JSON.stringify({ success: false, error: err.message }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        });
+        return jsonResponse({ success: false, error: err.message }, 500);
       }
     }
 
     // 10. API: LINE 設定状態確認
     if (url.pathname === '/api/line/config') {
-      return new Response(JSON.stringify({
+      return jsonResponse({
         hasChannelSecret: !!env.LINE_CHANNEL_SECRET,
         hasAccessToken: !!env.LINE_CHANNEL_ACCESS_TOKEN
-      }), {
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
-    }
-
-    // 11. API: 認証情報＆所有店舗取得 (テナント初期化)
-    if (url.pathname === '/api/auth/me' && request.method === 'GET') {
-      try {
-        const sessionToken = extractSessionToken(request) || 'sess_demo_shibuya_token';
-        const user = await getUserBySession(env.DB, sessionToken);
-        if (!user) {
-          return new Response(JSON.stringify({ success: false, error: "有効なセッションが見つかりません。" }), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json', ...corsHeaders }
-          });
-        }
-        const locations = await getUserLocations(env.DB, user.id);
-        return new Response(JSON.stringify({ success: true, user, locations }), {
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        });
-      } catch (err) {
-        return new Response(JSON.stringify({ success: false, error: err.message }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        });
-      }
     }
 
     // 12. API: 店舗クチコミ一覧取得 (Row-Level Security 徹底)
     if (url.pathname === '/api/reviews' && request.method === 'GET') {
       try {
-        const sessionToken = extractSessionToken(request) || 'sess_demo_shibuya_token';
+        const sessionToken = extractSessionToken(request);
+        if (!sessionToken) {
+          return jsonResponse({ success: false, error: "Unauthorized" }, 401);
+        }
         const user = await getUserBySession(env.DB, sessionToken);
         if (!user) {
-          return new Response(JSON.stringify({ success: false, error: "認証が必要です。" }), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json', ...corsHeaders }
-          });
+          return jsonResponse({ success: false, error: "Unauthorized" }, 401);
         }
 
         let locationId = url.searchParams.get('location_id');
@@ -220,34 +291,26 @@ export default {
         }
 
         if (!locationId) {
-          return new Response(JSON.stringify({ success: false, error: "店舗が見つかりません。" }), {
-            status: 404,
-            headers: { 'Content-Type': 'application/json', ...corsHeaders }
-          });
+          return jsonResponse({ success: false, error: "店舗が見つかりません。" }, 404);
         }
 
         const reviews = await getLocationReviews(env.DB, locationId, user.id);
-        return new Response(JSON.stringify({ success: true, locationId, reviews }), {
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        });
+        return jsonResponse({ success: true, locationId, reviews });
       } catch (err) {
-        return new Response(JSON.stringify({ success: false, error: err.message }), {
-          status: 403,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        });
+        return jsonResponse({ success: false, error: err.message }, 403);
       }
     }
 
     // 13. API: 店舗設定の更新 (Row-Level Security 徹底)
     if (url.pathname === '/api/location/settings' && request.method === 'POST') {
       try {
-        const sessionToken = extractSessionToken(request) || 'sess_demo_shibuya_token';
+        const sessionToken = extractSessionToken(request);
+        if (!sessionToken) {
+          return jsonResponse({ success: false, error: "Unauthorized" }, 401);
+        }
         const user = await getUserBySession(env.DB, sessionToken);
         if (!user) {
-          return new Response(JSON.stringify({ success: false, error: "認証が必要です。" }), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json', ...corsHeaders }
-          });
+          return jsonResponse({ success: false, error: "Unauthorized" }, 401);
         }
 
         const body = await request.json();
@@ -256,27 +319,22 @@ export default {
           locationName, category, address, notificationEmail, lineUserId
         });
 
-        return new Response(JSON.stringify({ success: true, ...result }), {
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        });
+        return jsonResponse({ success: true, ...result });
       } catch (err) {
-        return new Response(JSON.stringify({ success: false, error: err.message }), {
-          status: 403,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        });
+        return jsonResponse({ success: false, error: err.message }, 403);
       }
     }
 
     // 14. API: クチコミ返信の反映 (Row-Level Security 徹底)
     if (url.pathname === '/api/reviews/reply' && request.method === 'POST') {
       try {
-        const sessionToken = extractSessionToken(request) || 'sess_demo_shibuya_token';
+        const sessionToken = extractSessionToken(request);
+        if (!sessionToken) {
+          return jsonResponse({ success: false, error: "Unauthorized" }, 401);
+        }
         const user = await getUserBySession(env.DB, sessionToken);
         if (!user) {
-          return new Response(JSON.stringify({ success: false, error: "認証が必要です。" }), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json', ...corsHeaders }
-          });
+          return jsonResponse({ success: false, error: "Unauthorized" }, 401);
         }
 
         const body = await request.json();
@@ -285,30 +343,23 @@ export default {
         // 店舗所有権を事前チェック
         const location = await getLocationById(env.DB, locationId, user.id);
         if (!location) {
-          return new Response(JSON.stringify({ success: false, error: "店舗へのアクセス権限がありません。" }), {
-            status: 403,
-            headers: { 'Content-Type': 'application/json', ...corsHeaders }
-          });
+          return jsonResponse({ success: false, error: "店舗へのアクセス権限がありません。" }, 403);
         }
 
         const result = await updateReviewReply(env.DB, reviewId, locationId, { replyText, replyStatus });
-        return new Response(JSON.stringify({ success: true, ...result }), {
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        });
+        return jsonResponse({ success: true, ...result });
       } catch (err) {
-        return new Response(JSON.stringify({ success: false, error: err.message }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        });
+        return jsonResponse({ success: false, error: err.message }, 400);
       }
     }
 
     // 15. 静的アセット（フロントエンド HTML/CSS/JS）へのフォールスルー
     if (env.ASSETS) {
-      return env.ASSETS.fetch(request);
+      const assetRes = await env.ASSETS.fetch(request);
+      return addSecurityHeaders(assetRes, corsHeaders);
     }
 
-    return new Response("らくらくクチコミ返信 (らくコミくん) API Running", { status: 200 });
+    return addSecurityHeaders(new Response("らくらくクチコミ返信 (らくコミくん) API Running", { status: 200 }), corsHeaders);
   },
 
   // 5. 定期実行 Cron (新着差分巡回バックアップ)
@@ -888,7 +939,7 @@ async function sendLineTestPush(env, origin, { userId }) {
  * (Authorizationヘッダー, Cookie, クエリパラメータ対応)
  */
 export function extractSessionToken(request) {
-  if (!request) return null;
+  if (!request || !request.headers) return null;
   
   // 1. Authorization: Bearer <token>
   const authHeader = request.headers.get('Authorization');
@@ -899,7 +950,7 @@ export function extractSessionToken(request) {
   // 2. Cookie: session_id=<token> or session_token=<token>
   const cookie = request.headers.get('Cookie');
   if (cookie) {
-    const match = cookie.match(/(?:session_id|session_token)=([^;]+)/);
+    const match = cookie.match(/(?:^|;\s*)(?:session_id|session_token)=([^;]+)/);
     if (match) return match[1].trim();
   }
 
@@ -920,7 +971,7 @@ export async function getUserBySession(db, sessionToken) {
   if (!db || !sessionToken) return null;
 
   const query = `
-    SELECT u.id, u.email, u.name, u.stripe_customer_id, u.stripe_subscription_id,
+    SELECT u.id, u.email, u.name, u.plan, u.stripe_customer_id, u.stripe_subscription_id,
            u.subscription_status, u.trial_ends_at, u.notification_email, u.line_user_id,
            s.id AS session_id, s.expires_at AS session_expires_at
     FROM sessions s
@@ -1074,5 +1125,148 @@ export async function updateReviewReply(db, reviewId, locationId, { replyText, r
   }
 
   return { success: true, reviewId };
+}
+
+/**
+ * ============================================================================
+ * 認証・暗号化・セキュリティ ヘルパー関数群 (Web Crypto API & CORS & Security Headers)
+ * ============================================================================
+ */
+
+export function uint8ArrayToHex(arr) {
+  return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+export function hexToUint8Array(hex) {
+  if (!hex || typeof hex !== 'string') return new Uint8Array();
+  const matches = hex.match(/.{1,2}/g);
+  return matches ? new Uint8Array(matches.map(b => parseInt(b, 16))) : new Uint8Array();
+}
+
+/**
+ * タイミング攻撃耐性のある文字列等値比較
+ */
+export function timingSafeEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+/**
+ * Web Crypto API PBKDF2 によるパスワードハッシュ化
+ * (SHA-256 / 100,000 iterations / 256-bit derived key)
+ */
+export async function hashPassword(password, saltHex = null) {
+  if (typeof password !== 'string') {
+    throw new Error("Password must be a string");
+  }
+  const encoder = new TextEncoder();
+  const salt = saltHex ? hexToUint8Array(saltHex) : crypto.getRandomValues(new Uint8Array(16));
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(password),
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits"]
+  );
+
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      salt: salt,
+      iterations: 100000,
+      hash: "SHA-256",
+    },
+    keyMaterial,
+    256
+  );
+
+  return {
+    hash: uint8ArrayToHex(new Uint8Array(derivedBits)),
+    salt: uint8ArrayToHex(salt)
+  };
+}
+
+/**
+ * PBKDF2 パスワード検証
+ */
+export async function verifyPassword(password, storedHash, storedSalt) {
+  if (!password || !storedHash || !storedSalt) return false;
+  try {
+    const { hash } = await hashPassword(password, storedSalt);
+    return timingSafeEqual(hash, storedHash);
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * 厳格なCORSヘッダー判定
+ * - Access-Control-Allow-Origin: * を完全に排除
+ * - 許可オリジンのみ反射し、Access-Control-Allow-Credentials: true を付与
+ */
+export function getCorsHeaders(request, env = {}) {
+  const origin = (request && request.headers ? request.headers.get('Origin') : '') || '';
+  
+  const allowedOrigins = [
+    'https://review-pilot-6bm.pages.dev',
+    'https://review-pilot.pages.dev',
+    ...(env.APP_URL ? [env.APP_URL] : []),
+    ...(env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(',').map(s => s.trim()) : [])
+  ];
+
+  let isAllowed = false;
+  if (origin) {
+    if (allowedOrigins.includes(origin)) {
+      isAllowed = true;
+    } else if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      isAllowed = true;
+    }
+  }
+
+  const headers = {
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+    'Vary': 'Origin',
+  };
+
+  if (isAllowed) {
+    headers['Access-Control-Allow-Origin'] = origin;
+    headers['Access-Control-Allow-Credentials'] = 'true';
+  }
+
+  return headers;
+}
+
+/**
+ * セキュリティヘッダー自動付加ヘルパー
+ * - X-Content-Type-Options: nosniff
+ * - X-Frame-Options: DENY
+ * - Referrer-Policy: strict-origin-when-cross-origin
+ */
+export function addSecurityHeaders(response, corsHeaders = {}) {
+  if (!response) return response;
+  const newHeaders = new Headers(response.headers);
+  newHeaders.set('X-Content-Type-Options', 'nosniff');
+  newHeaders.set('X-Frame-Options', 'DENY');
+  newHeaders.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  if (corsHeaders) {
+    for (const [key, value] of Object.entries(corsHeaders)) {
+      if (value !== undefined && value !== null) {
+        newHeaders.set(key, value);
+      }
+    }
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: newHeaders
+  });
 }
 

@@ -2,14 +2,19 @@
 -- テスト・初期デモ用シードデータ
 
 -- 1. デモユーザー (渋谷店オーナー & マルチテナント分離検証用新宿店オーナー)
+-- 初期パスワード: password123 (PBKDF2 SHA-256 / 100,000 iterations)
 INSERT OR REPLACE INTO users (
-    id, email, name, stripe_customer_id, stripe_subscription_id, 
+    id, email, password_hash, password_salt, name, plan,
+    stripe_customer_id, stripe_subscription_id, 
     subscription_status, trial_ends_at, notification_email, line_user_id
 ) VALUES 
 (
     'usr_demo_shibuya', 
     'owner@trattoria-shibuya.com', 
+    'd3de1d8eb1756105a9cbfd0ebeac9b790a7b817f1e684d01cb330ac9b36eabc5',
+    'a1b2c3d4e5f6789012345678abcdef01',
     'TRATTORIA SHIBUYA オーナー', 
+    'pro',
     'cus_demo184920481920', 
     'sub_demo184920481920', 
     'trialing', 
@@ -20,7 +25,10 @@ INSERT OR REPLACE INTO users (
 (
     'usr_demo_shinjuku', 
     'owner@bistro-shinjuku.com', 
+    'd3de1d8eb1756105a9cbfd0ebeac9b790a7b817f1e684d01cb330ac9b36eabc5',
+    'a1b2c3d4e5f6789012345678abcdef01',
     'BISTRO SHINJUKU オーナー', 
+    'standard',
     'cus_demo999999999999', 
     'sub_demo999999999999', 
     'active', 

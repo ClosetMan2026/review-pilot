@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "test": "node test_auth_security.js && node test_functions.js",
+    "test:auth": "node test_auth_security.js"
   },
   "keywords": [
     "cloudflare",
