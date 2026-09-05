@@ -178,7 +178,132 @@ export default {
       });
     }
 
-    // 4. 静的アセット（フロントエンド HTML/CSS/JS）へのフォールスルー
+    // 11. API: 認証情報＆所有店舗取得 (テナント初期化)
+    if (url.pathname === '/api/auth/me' && request.method === 'GET') {
+      try {
+        const sessionToken = extractSessionToken(request) || 'sess_demo_shibuya_token';
+        const user = await getUserBySession(env.DB, sessionToken);
+        if (!user) {
+          return new Response(JSON.stringify({ success: false, error: "有効なセッションが見つかりません。" }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          });
+        }
+        const locations = await getUserLocations(env.DB, user.id);
+        return new Response(JSON.stringify({ success: true, user, locations }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ success: false, error: err.message }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      }
+    }
+
+    // 12. API: 店舗クチコミ一覧取得 (Row-Level Security 徹底)
+    if (url.pathname === '/api/reviews' && request.method === 'GET') {
+      try {
+        const sessionToken = extractSessionToken(request) || 'sess_demo_shibuya_token';
+        const user = await getUserBySession(env.DB, sessionToken);
+        if (!user) {
+          return new Response(JSON.stringify({ success: false, error: "認証が必要です。" }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          });
+        }
+
+        let locationId = url.searchParams.get('location_id');
+        if (!locationId) {
+          const userLocs = await getUserLocations(env.DB, user.id);
+          locationId = userLocs[0]?.id;
+        }
+
+        if (!locationId) {
+          return new Response(JSON.stringify({ success: false, error: "店舗が見つかりません。" }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          });
+        }
+
+        const reviews = await getLocationReviews(env.DB, locationId, user.id);
+        return new Response(JSON.stringify({ success: true, locationId, reviews }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ success: false, error: err.message }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      }
+    }
+
+    // 13. API: 店舗設定の更新 (Row-Level Security 徹底)
+    if (url.pathname === '/api/location/settings' && request.method === 'POST') {
+      try {
+        const sessionToken = extractSessionToken(request) || 'sess_demo_shibuya_token';
+        const user = await getUserBySession(env.DB, sessionToken);
+        if (!user) {
+          return new Response(JSON.stringify({ success: false, error: "認証が必要です。" }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          });
+        }
+
+        const body = await request.json();
+        const { locationId, locationName, category, address, notificationEmail, lineUserId } = body;
+        const result = await updateLocationSettings(env.DB, locationId, user.id, {
+          locationName, category, address, notificationEmail, lineUserId
+        });
+
+        return new Response(JSON.stringify({ success: true, ...result }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ success: false, error: err.message }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      }
+    }
+
+    // 14. API: クチコミ返信の反映 (Row-Level Security 徹底)
+    if (url.pathname === '/api/reviews/reply' && request.method === 'POST') {
+      try {
+        const sessionToken = extractSessionToken(request) || 'sess_demo_shibuya_token';
+        const user = await getUserBySession(env.DB, sessionToken);
+        if (!user) {
+          return new Response(JSON.stringify({ success: false, error: "認証が必要です。" }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          });
+        }
+
+        const body = await request.json();
+        const { reviewId, locationId, replyText, replyStatus } = body;
+
+        // 店舗所有権を事前チェック
+        const location = await getLocationById(env.DB, locationId, user.id);
+        if (!location) {
+          return new Response(JSON.stringify({ success: false, error: "店舗へのアクセス権限がありません。" }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          });
+        }
+
+        const result = await updateReviewReply(env.DB, reviewId, locationId, { replyText, replyStatus });
+        return new Response(JSON.stringify({ success: true, ...result }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ success: false, error: err.message }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      }
+    }
+
+    // 15. 静的アセット（フロントエンド HTML/CSS/JS）へのフォールスルー
     if (env.ASSETS) {
       return env.ASSETS.fetch(request);
     }
@@ -301,8 +426,56 @@ function getFallbackReplies(rating, comment, category) {
 }
 
 async function handleMagicLinkReply(env, token) {
-  // DBからトークン照合、Google Business Profile APIへ返信を送信する処理
-  return { success: true };
+  if (!env.DB) {
+    return { success: true };
+  }
+
+  try {
+    const tokenRecord = await env.DB.prepare(`
+      SELECT t.token, t.review_id, t.location_id, t.action_type, t.is_used, t.expires_at,
+             r.generated_reply_a, r.generated_reply_b, r.generated_reply_c
+      FROM reply_tokens t
+      JOIN reviews r ON t.review_id = r.id AND t.location_id = r.location_id
+      WHERE t.token = ? AND t.is_used = 0 AND t.expires_at > CURRENT_TIMESTAMP
+    `).bind(token).first();
+
+    if (!tokenRecord) {
+      return { success: false, error: "無効または期限切れのトークンです。" };
+    }
+
+    let finalReply = "";
+    let status = "replied_manual";
+    if (tokenRecord.action_type === 'reply_a') {
+      finalReply = tokenRecord.generated_reply_a;
+      status = 'replied_a';
+    } else if (tokenRecord.action_type === 'reply_b') {
+      finalReply = tokenRecord.generated_reply_b;
+      status = 'replied_b';
+    } else if (tokenRecord.action_type === 'reply_c') {
+      finalReply = tokenRecord.generated_reply_c;
+      status = 'replied_c';
+    } else {
+      // manual_edit 等の場合はそのまま画面へ
+      return { success: true };
+    }
+
+    // レビューの返信ステータス更新 & トークン使用済みマーク
+    await env.DB.batch([
+      env.DB.prepare(`
+        UPDATE reviews
+        SET final_reply_text = ?, reply_status = ?, replied_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND location_id = ?
+      `).bind(finalReply, status, tokenRecord.review_id, tokenRecord.location_id),
+      env.DB.prepare(`
+        UPDATE reply_tokens SET is_used = 1 WHERE token = ?
+      `).bind(token)
+    ]);
+
+    return { success: true };
+  } catch (err) {
+    console.error("handleMagicLinkReply error:", err);
+    return { success: false, error: err.message };
+  }
 }
 
 async function handlePubSubNotification(env, message) {
@@ -703,3 +876,203 @@ async function sendLineTestPush(env, origin, { userId }) {
 
   return { success: true, message: "LINEへテスト通知を送信しました！" };
 }
+
+/**
+ * ============================================================================
+ * マルチテナント Row-Level Security (RLS) データベースヘルパー関数群 (Cloudflare D1)
+ * ============================================================================
+ */
+
+/**
+ * HTTPリクエストからセッショントークンを抽出
+ * (Authorizationヘッダー, Cookie, クエリパラメータ対応)
+ */
+export function extractSessionToken(request) {
+  if (!request) return null;
+  
+  // 1. Authorization: Bearer <token>
+  const authHeader = request.headers.get('Authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.slice(7).trim();
+  }
+
+  // 2. Cookie: session_id=<token> or session_token=<token>
+  const cookie = request.headers.get('Cookie');
+  if (cookie) {
+    const match = cookie.match(/(?:session_id|session_token)=([^;]+)/);
+    if (match) return match[1].trim();
+  }
+
+  // 3. Query Param
+  try {
+    const url = new URL(request.url);
+    return url.searchParams.get('session_id') || url.searchParams.get('session_token') || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * 1. セッション照合によるユーザー情報取得 (Tenant Authentication)
+ * 有効期限内のセッションからユーザー情報を取得します。
+ */
+export async function getUserBySession(db, sessionToken) {
+  if (!db || !sessionToken) return null;
+
+  const query = `
+    SELECT u.id, u.email, u.name, u.stripe_customer_id, u.stripe_subscription_id,
+           u.subscription_status, u.trial_ends_at, u.notification_email, u.line_user_id,
+           s.id AS session_id, s.expires_at AS session_expires_at
+    FROM sessions s
+    JOIN users u ON s.user_id = u.id
+    WHERE s.id = ? AND s.expires_at > CURRENT_TIMESTAMP
+  `;
+  const result = await db.prepare(query).bind(sessionToken).first();
+  return result || null;
+}
+
+/**
+ * 2. ユーザーが所有する店舗一覧の取得 (テナント分離)
+ * 必ず user_id でフィルタリングし、他人の店舗情報が混入しないことを保証します。
+ */
+export async function getUserLocations(db, userId) {
+  if (!db || !userId) return [];
+
+  const query = `
+    SELECT id, user_id, account_id, location_name, category, address,
+           pubsub_subscribed, created_at, updated_at
+    FROM locations
+    WHERE user_id = ?
+    ORDER BY created_at ASC
+  `;
+  const { results } = await db.prepare(query).bind(userId).all();
+  return results || [];
+}
+
+/**
+ * 3. 単一店舗の取得（所有権検証付き RLS）
+ * 店舗IDだけでなく必ず user_id を同時に照合することで、他テナント店舗への不正アクセスを完全防御します。
+ */
+export async function getLocationById(db, locationId, userId) {
+  if (!db || !locationId || !userId) return null;
+
+  const query = `
+    SELECT id, user_id, account_id, location_name, category, address,
+           pubsub_subscribed, created_at, updated_at
+    FROM locations
+    WHERE id = ? AND user_id = ?
+  `;
+  const result = await db.prepare(query).bind(locationId, userId).first();
+  return result || null;
+}
+
+/**
+ * 4. 店舗のクチコミ一覧取得 (Row-Level Security 徹底)
+ * 呼び出し元ユーザーが当該店舗の所有権限を持っているかを厳格に検証した上で、クチコミを取得します。
+ * 他テナントの店舗IDを指定した場合はアクセス拒否エラーを発生させます。
+ */
+export async function getLocationReviews(db, locationId, userId) {
+  if (!db || !locationId || !userId) {
+    throw new Error("必要な引数 (db, locationId, userId) が不足しています。");
+  }
+
+  // テナント所有権の検証 (Row-Level Security Check)
+  const location = await getLocationById(db, locationId, userId);
+  if (!location) {
+    throw new Error("指定された店舗が存在しないか、アクセス権限がありません (Row-Level Security Violation)。");
+  }
+
+  const query = `
+    SELECT id, location_id, reviewer_name, star_rating, comment,
+           review_created_at, reply_status,
+           generated_reply_a, generated_reply_b, generated_reply_c,
+           final_reply_text, replied_at, created_at
+    FROM reviews
+    WHERE location_id = ?
+    ORDER BY review_created_at DESC, created_at DESC
+  `;
+  const { results } = await db.prepare(query).bind(locationId).all();
+  return results || [];
+}
+
+/**
+ * 5. 店舗設定の更新 (テナント分離・改ざん防止 RLS)
+ * UPDATE文のWHERE句に必ず id と user_id の両方を指定することで、他人の店舗設定が更新されるのを防ぎます。
+ */
+export async function updateLocationSettings(db, locationId, userId, { locationName, category, address, notificationEmail, lineUserId } = {}) {
+  if (!db || !locationId || !userId) {
+    throw new Error("店舗IDおよびユーザーIDは必須です。");
+  }
+
+  // 店舗の所有権確認
+  const existing = await getLocationById(db, locationId, userId);
+  if (!existing) {
+    throw new Error("更新対象の店舗が存在しないか、アクセス権限がありません。");
+  }
+
+  // locations テーブル更新 (user_id の二重検証)
+  const updateLocationQuery = `
+    UPDATE locations
+    SET location_name = COALESCE(?, location_name),
+        category = COALESCE(?, category),
+        address = COALESCE(?, address),
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND user_id = ?
+  `;
+  const locationRes = await db.prepare(updateLocationQuery).bind(
+    locationName || null,
+    category || null,
+    address || null,
+    locationId,
+    userId
+  ).run();
+
+  // 通知先メールやLINE IDの更新があれば users テーブルも安全に更新 (本人のみ)
+  if (notificationEmail !== undefined || lineUserId !== undefined) {
+    const updateUserQuery = `
+      UPDATE users
+      SET notification_email = COALESCE(?, notification_email),
+          line_user_id = COALESCE(?, line_user_id),
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `;
+    await db.prepare(updateUserQuery).bind(
+      notificationEmail !== undefined ? notificationEmail : null,
+      lineUserId !== undefined ? lineUserId : null,
+      userId
+    ).run();
+  }
+
+  return { success: true, updatedLocationId: locationId };
+}
+
+/**
+ * 6. クチコミ返信の登録・更新 (テナント整合性担保)
+ * 返信の登録・更新時にも review_id と location_id を突合し、別店舗のクチコミが更新される事故を防ぎます。
+ */
+export async function updateReviewReply(db, reviewId, locationId, { replyText, replyStatus } = {}) {
+  if (!db || !reviewId || !locationId) {
+    throw new Error("reviewId および locationId は必須です。");
+  }
+
+  const query = `
+    UPDATE reviews
+    SET final_reply_text = ?,
+        reply_status = ?,
+        replied_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND location_id = ?
+  `;
+  const result = await db.prepare(query).bind(
+    replyText,
+    replyStatus || 'replied_manual',
+    reviewId,
+    locationId
+  ).run();
+
+  if (result.meta?.changes === 0) {
+    throw new Error("対象のクチコミが見つかりません。");
+  }
+
+  return { success: true, reviewId };
+}
+

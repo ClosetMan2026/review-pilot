@@ -10,8 +10,8 @@ binding = "ASSETS"
 # D1 Database
 [[d1_databases]]
 binding = "DB"
-database_name = "review_pilot_db"
-database_id = "your-database-id-placeholder"
+database_name = "review-pilot-db"
+database_id = "76980f41-909e-4cc6-8196-49137ab958be"
 
 # Cron Triggers (15分おきに新着レビューのバックアップ巡回)
 [triggers]
