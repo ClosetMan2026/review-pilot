@@ -20,63 +20,122 @@
       <a href="/" class="flex items-center gap-2 font-extrabold text-xl text-indigo-600">
         <span class="text-2xl">✨</span> らくらくクチコミ返信 <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold ml-1">らくコミくん</span>
       </a>
-      <a href="/" class="text-sm font-medium text-slate-600 hover:text-indigo-600 transition">← トップページに戻る</a>
+      <a href="/" class="text-sm font-medium text-slate-600 hover:text-indigo-600 transition flex items-center gap-1">
+        <span>←</span> トップページに戻る
+      </a>
     </div>
   </header>
 
   <!-- Main Content -->
   <main class="max-w-4xl mx-auto px-4 sm:px-6 py-12">
     <div class="bg-white p-8 sm:p-12 rounded-2xl shadow-sm border border-slate-200">
-      <h1 class="text-3xl font-extrabold text-slate-900 mb-4">利用規約</h1>
-      <p class="text-sm text-slate-500 mb-8">最終改定日: 2026年8月26日</p>
+      
+      <!-- Title Area -->
+      <div class="border-b border-slate-200 pb-6 mb-8">
+        <div class="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-semibold mb-3">
+          <span>📜</span> サービス利用規約
+        </div>
+        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">利用規約</h1>
+        <p class="text-sm text-slate-500 mt-2">最終改定日: 2026年9月5日</p>
+      </div>
 
       <div class="space-y-8 text-slate-700 text-sm leading-relaxed">
         
         <section>
-          <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-indigo-600 pl-3">第1条（総則）</h2>
+          <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-indigo-600 pl-3">第1条（総則および適用）</h2>
           <p>
-            本利用規約（以下「本規約」）は、らくらくクチコミ返信（らくコミくん）（以下「当サービス」）が提供するGoogleマップクチコミ管理・返信支援サービスの利用条件を定めるものです。ユーザーは、本規約に同意した上で当サービスを利用するものとします。
+            本利用規約（以下「本規約」）は、らくらくクチコミ返信（らくコミくん）（以下「当サービス」）が提供するGoogleマップクチコミ管理および返信支援サービスの利用条件を定めるものです。利用登録を行ったユーザー（以下「ユーザー」）は、本規約の全条項に同意した上で当サービスを利用するものとします。
           </p>
         </section>
 
         <section>
           <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-indigo-600 pl-3">第2条（サービス内容）</h2>
-          <p class="mb-2">当サービスは、以下の機能を提供する店舗運営者向け支援ツールです：</p>
-          <ul class="list-disc list-inside space-y-1 pl-2 text-slate-600">
+          <p class="mb-2">当サービスは、以下の機能を提供する店舗運営者向けクラウド支援ツールです：</p>
+          <ul class="list-disc list-inside space-y-1.5 pl-2 text-slate-600">
             <li>Googleビジネスプロフィールに投稿された新着クチコミの検知・通知機能</li>
-            <li>生成AIを活用したクチコミ返信文案（複数パターン）の自動作成提示機能</li>
-            <li>店舗オーナーの選択・承認または編集によるGoogleマップへの代理返信機能</li>
+            <li>生成AIを活用したクチコミ返信文案（複数トーン＆マナー）の自動作成および提示機能</li>
+            <li>店舗責任者の選択・承認または編集によるGoogleマップへの代理投稿・返信機能</li>
+            <li>インバウンド対応（多言語クチコミの自動翻訳および外国語による返信案作成）機能</li>
           </ul>
         </section>
 
         <section>
-          <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-indigo-600 pl-3">第3条（アカウント管理・Google認証）</h2>
+          <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-indigo-600 pl-3">第3条（アカウント管理およびGoogle認証）</h2>
           <p>
-            ユーザーは、当サービスの利用にあたり、正当な管理権限を有するGoogleビジネスプロフィールアカウントを連携するものとします。認証情報の管理責任はユーザーが負うものとします。
+            1. ユーザーは、当サービスの利用にあたり、正当な管理権限またはオーナー権限を有するGoogleビジネスプロフィールアカウントを連携するものとします。<br>
+            2. ユーザーは、連携したアカウントの認証情報、ログイン情報の管理責任を自ら負うものとし、第三者への譲渡・貸与等は禁止します。
           </p>
         </section>
 
         <section>
-          <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-indigo-600 pl-3">第4条（利用料金および支払い）</h2>
+          <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-indigo-600 pl-3">第4条（利用料金、無料トライアルおよび支払い）</h2>
+          <div class="space-y-2">
+            <p>
+              1. <strong>利用料金:</strong> 当サービスの利用料金は、1店舗あたり<strong>月額3,000円（消費税込）</strong>とします。初期費用・登録事務手数料は無料です。
+            </p>
+            <p>
+              2. <strong>無料トライアル:</strong> 初回アカウント登録を行ったユーザーには、登録日を含む<strong>14日間の無料トライアル期間</strong>が適用されます。無料トライアル期間中は、有料プランと同等の全機能を無償でご利用いただけます。
+            </p>
+            <p>
+              3. <strong>自動課金への移行:</strong> 14日間の無料トライアル期間終了時までにユーザーが第6条に定める解約手続きを完了しない場合、無料トライアル終了時点をもって自動的に有料プランへ移行し、初回の月額利用料金（3,000円 税込）が登録されたクレジットカードより自動的に決済されます。
+            </p>
+            <p>
+              4. <strong>決済方法:</strong> お支払いは、国際基準PCI DSSに準拠したStripe, Inc.の決済システムを通じたクレジットカード（Visa、Mastercard、American Express、JCB、Diners Club、Discover）決済により行われるものとします。
+            </p>
+            <p>
+              5. <strong>定期契約（サブスクリプション）の自動更新:</strong> 有料プランは1ヶ月ごとの自動更新サブスクリプション契約です。次回更新日前までに解約手続きが行われない限り、同一条件で毎月自動的に1ヶ月間更新され、登録クレジットカードに対して月額料金が継続課金されます。
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-indigo-600 pl-3">第5条（免責事項および保証の否認）</h2>
+          <div class="space-y-2">
+            <p>
+              1. 当サービスがAIを用いて提示するクチコミ返信文案は作成支援を目的とした提案であり、投稿内容の最終的な確認、編集および送信に関する一切の責任はユーザーに帰属します。生成された文章の利用によって生じた損害や第三者とのトラブルについて、当サービスは故意または重大な過失がある場合を除き責任を負いません。
+            </p>
+            <p>
+              2. Google社のAPI仕様変更、障害、アカウントの利用制限・停止、またはGoogleビジネスプロフィール等の利用規約変更等に起因してサービスが中断・停止・変更された場合について、当サービスは合理的な範囲を超えた補償・返金責任を負いません。
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-indigo-600 pl-3">第6条（契約期間、解約、更新停止および返金ポリシー）</h2>
+          <div class="space-y-2">
+            <p>
+              1. <strong>解約手続き:</strong> ユーザーは、当サービスの管理画面（ユーザーダッシュボード）に設置された「プラン管理（Stripeカスタマーポータル）」より、次回契約更新日の前日23:59まで、24時間365日いつでもオンライン上で次回自動更新の停止・解約手続きを行うことができます。
+            </p>
+            <p>
+              2. <strong>解約後の利用可能期間:</strong> 解約手続きを完了した場合であっても、既にお支払い済みの当該契約期間満了日（次回更新日の前日）までは引き続きすべての機能をご利用いただけます。満了日の翌日以降、サービスの提供は終了し、次回以降の請求は一切行われません。
+            </p>
+            <p>
+              3. <strong>無料トライアル中の解約:</strong> 14日間の無料トライアル期間満了前に解約手続きを行った場合、利用料金は一切発生いたしません。
+            </p>
+            <p>
+              4. <strong>返金・日割り精算の不適用:</strong> クラウドソフトウェアおよびデジタル役務の特性上、決済完了後のユーザー都合によるキャンセル、返金、ならびに契約期間途中での解約に伴う日割り計算による返金等には一切応じかねますのでご了承ください。
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-indigo-600 pl-3">第7条（禁止事項）</h2>
           <p>
-            1. 当サービスの利用料金は、月額3,000円（税込）/ 1店舗です。<br>
-            2. 初回登録時より14日間の無料トライアル期間が適用されます。<br>
-            3. お支払いはStripe決済を通じてクレジットカードにより行われるものとし、解約手続きが行われない限り毎月自動更新されます。
+            ユーザーは、当サービスの利用にあたり、法令違反行為、公序良俗に反する行為、本サービスのサーバーやネットワーク機能への不正アクセス・過度な負荷を与える行為、Googleビジネスプロフィールの規約に反する不正なクチコミ操作等を自ら行い、または第三者にこれを行わせてはなりません。
           </p>
         </section>
 
         <section>
-          <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-indigo-600 pl-3">第5条（免責事項）</h2>
+          <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-indigo-600 pl-3">第8条（利用規約の変更）</h2>
           <p>
-            1. 当サービスがAIにより生成する返信案は支援のための提案であり、投稿内容の最終的な確認および責任はユーザーに帰属します。<br>
-            2. Google社のAPI仕様変更、障害、またはGoogleビジネスプロフィールの規約変更によるサービスの中断・停止について、当サービスは合理的な範囲を超えた責任を負いません。
+            当サービスは、必要に応じて本規約を変更できるものとします。本規約の改定を行う場合、改定後の規約内容および効力発生時期を本Webサイト上での告知その他適切な方法によりユーザーに通知するものとします。
           </p>
         </section>
 
         <section>
-          <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-indigo-600 pl-3">第6条（解約）</h2>
+          <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-indigo-600 pl-3">第9条（準拠法および管轄裁判所）</h2>
           <p>
-            ユーザーは、管理画面または所定の手続きにより、いつでも当サービスの利用契約を解約することができます。解約月の月割り精算は行いません。
+            本規約の解釈および適用は日本法に準拠するものとし、本サービスに関してユーザーと当サービス運営者との間に生じた一切の紛争については、東京地方裁判所を第一審の専属的合意管轄裁判所とします。
           </p>
         </section>
 
@@ -86,6 +145,11 @@
 
   <!-- Footer -->
   <footer class="border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-500">
+    <div class="flex justify-center gap-6 mb-3 text-slate-600">
+      <a href="/tokushoho.html" class="hover:text-indigo-600 transition">特定商取引法に基づく表記</a>
+      <a href="/terms.html" class="hover:text-indigo-600 font-bold text-indigo-600 transition">利用規約</a>
+      <a href="/privacy.html" class="hover:text-indigo-600 transition">プライバシーポリシー</a>
+    </div>
     <p>&copy; 2026 らくらくクチコミ返信（らくコミくん）. All rights reserved.</p>
   </footer>
 
