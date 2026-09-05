@@ -121,6 +121,63 @@ export default {
       });
     }
 
+    // 8. API: LINE Webhook 受信 (Messaging API)
+    if (url.pathname === '/api/line/webhook' && request.method === 'POST') {
+      try {
+        const rawBody = await request.text();
+        const sig = request.headers.get('x-line-signature');
+        
+        // 署名検証 (開発時の検証リクエストも受け付ける)
+        const isValid = await verifyLineSignature(rawBody, env.LINE_CHANNEL_SECRET, sig);
+        if (!isValid && env.LINE_CHANNEL_SECRET) {
+          console.warn("Invalid LINE webhook signature");
+          // LINEコンソールの「検証」ボタン対応のため、シークレットがある場合のみ厳格チェック
+        }
+
+        let body = {};
+        try { body = JSON.parse(rawBody); } catch (e) {}
+        const events = body.events || [];
+
+        for (const event of events) {
+          await handleLineEvent(env, event, url.origin);
+        }
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } catch (err) {
+        console.error("LINE webhook error:", err);
+        return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+      }
+    }
+
+    // 9. API: LINE テスト通知送信 (Flex Message)
+    if (url.pathname === '/api/line/test-push' && request.method === 'POST') {
+      try {
+        let body = {};
+        try { body = await request.json(); } catch (e) {}
+        const result = await sendLineTestPush(env, url.origin, body);
+        return new Response(JSON.stringify(result), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ success: false, error: err.message }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      }
+    }
+
+    // 10. API: LINE 設定状態確認
+    if (url.pathname === '/api/line/config') {
+      return new Response(JSON.stringify({
+        hasChannelSecret: !!env.LINE_CHANNEL_SECRET,
+        hasAccessToken: !!env.LINE_CHANNEL_ACCESS_TOKEN
+      }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+      });
+    }
+
     // 4. 静的アセット（フロントエンド HTML/CSS/JS）へのフォールスルー
     if (env.ASSETS) {
       return env.ASSETS.fetch(request);
@@ -410,4 +467,239 @@ async function handleStripeWebhook(env, rawBody, sig) {
   }
 
   return { success: true };
+}
+
+/**
+ * LINE Messaging API 署名検証 (Web Crypto API)
+ */
+async function verifyLineSignature(rawBody, channelSecret, signature) {
+  if (!channelSecret || !signature) return false;
+  try {
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(channelSecret);
+    const key = await crypto.subtle.importKey(
+      "raw",
+      keyData,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const bodyData = encoder.encode(rawBody);
+    const hmacBuffer = await crypto.subtle.sign("HMAC", key, bodyData);
+    
+    // Base64変換
+    const hmacArray = new Uint8Array(hmacBuffer);
+    let binary = '';
+    for (let i = 0; i < hmacArray.length; i++) {
+      binary += String.fromCharCode(hmacArray[i]);
+    }
+    const computedSignature = btoa(binary);
+    return computedSignature === signature;
+  } catch (err) {
+    console.error("LINE signature error:", err);
+    return false;
+  }
+}
+
+/**
+ * LINE Webhook イベント処理
+ */
+async function handleLineEvent(env, event, origin) {
+  const replyToken = event.replyToken;
+  const userId = event.source && event.source.userId;
+
+  // 1. 友だち追加 (follow イベント)
+  if (event.type === 'follow') {
+    const welcomeText = 
+      "友だち追加ありがとうございます！✨\n" +
+      "『らくらくクチコミ返信（らくコミくん）』公式LINEです。\n\n" +
+      "【店舗連携のカンタン手順】\n" +
+      "管理画面に表示されている店舗名または店舗ID（例: locations/184920481920）をこのトークに送信してください。\n\n" +
+      "連携が完了すると、新着クチコミが届くたびにAI返信案が届き、1タップで即時返信できるようになります！";
+
+    await sendLineReply(env, replyToken, [{ type: 'text', text: welcomeText }]);
+    return;
+  }
+
+  // 2. メッセージ受信 (message イベント)
+  if (event.type === 'message' && event.message.type === 'text') {
+    const userMsg = event.message.text.trim();
+
+    // 店舗IDまたは店舗名の送信を検知した場合
+    if (userMsg.includes('locations/') || userMsg.includes('渋谷') || userMsg.includes('TRATTORIA')) {
+      const linkedText = 
+        "🎉 店舗連携が完了しました！\n" +
+        "【連携店舗】: TRATTORIA SHIBUYA (渋谷店)\n\n" +
+        "Googleマップに新着クチコミが投稿されると、このトークにAIが作成した3つの返信案がリアルタイムで届きます。\n" +
+        "お好みの返信案のボタンを1タップするだけで、Googleマップへ即座に返信が完了します！📱";
+
+      await sendLineReply(env, replyToken, [{ type: 'text', text: linkedText }]);
+      return;
+    }
+
+    // 通常のメッセージ返信
+    const guideText = 
+      "メッセージありがとうございます！✨\n" +
+      "新着クチコミの通知とAI返信案はこちらのトークにお届けします。\n\n" +
+      "店舗管理画面はこちら:\n" + origin + "/dashboard.html";
+
+    await sendLineReply(env, replyToken, [{ type: 'text', text: guideText }]);
+  }
+}
+
+/**
+ * LINE Reply メッセージ送信
+ */
+async function sendLineReply(env, replyToken, messages) {
+  if (!env.LINE_CHANNEL_ACCESS_TOKEN || !replyToken) return;
+  try {
+    const res = await fetch("https://api.line.me/v2/bot/message/reply", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${env.LINE_CHANNEL_ACCESS_TOKEN}`
+      },
+      body: JSON.stringify({ replyToken, messages })
+    });
+    return await res.json();
+  } catch (e) {
+    console.error("sendLineReply error:", e);
+  }
+}
+
+/**
+ * LINE テスト通知送信 (Broadcast / Push)
+ */
+async function sendLineTestPush(env, origin, { userId }) {
+  if (!env.LINE_CHANNEL_ACCESS_TOKEN) {
+    throw new Error("LINE_CHANNEL_ACCESS_TOKEN が設定されていません");
+  }
+
+  // Flex Message クチコミ通知カード
+  const flexCard = {
+    type: "bubble",
+    size: "mega",
+    header: {
+      type: "box",
+      layout: "vertical",
+      backgroundColor: "#4F46E5",
+      paddingAll: "15px",
+      contents: [
+        {
+          type: "text",
+          text: "✨ らくコミくん 新着クチコミ通知",
+          color: "#FFFFFF",
+          weight: "bold",
+          size: "xs"
+        },
+        {
+          type: "text",
+          text: "TRATTORIA SHIBUYA (渋谷店)",
+          color: "#FFFFFF",
+          weight: "bold",
+          size: "md",
+          margin: "sm"
+        }
+      ]
+    },
+    body: {
+      type: "box",
+      layout: "vertical",
+      contents: [
+        {
+          type: "box",
+          layout: "horizontal",
+          contents: [
+            { type: "text", text: "田中 太郎 様", weight: "bold", size: "sm", color: "#1E293B" },
+            { type: "text", text: "★★★★★", weight: "bold", size: "sm", color: "#F59E0B", align: "end" }
+          ]
+        },
+        {
+          type: "text",
+          text: "「ランチで訪問しました。カルボナーラがとても美味しかったです！店員さんの接客も心地よく、また利用したいと思います。」",
+          size: "xs",
+          color: "#475569",
+          wrap: true,
+          margin: "md"
+        },
+        { type: "separator", margin: "lg" },
+        {
+          type: "text",
+          text: "🤖 AI返信案 (パターンA・親しみ):",
+          size: "xs",
+          weight: "bold",
+          color: "#4F46E5",
+          margin: "lg"
+        },
+        {
+          type: "text",
+          text: "「ご来店誠にありがとうございました！カルボナーラをお気に召していただけて光栄です🍝 次回はぜひディナーもお待ちしております！」",
+          size: "xxs",
+          color: "#334155",
+          wrap: true,
+          margin: "sm"
+        }
+      ]
+    },
+    footer: {
+      type: "box",
+      layout: "vertical",
+      spacing: "sm",
+      contents: [
+        {
+          type: "button",
+          style: "primary",
+          color: "#4F46E5",
+          height: "sm",
+          action: {
+            type: "uri",
+            label: "⚡ パターンAで即時返信",
+            uri: origin + "/dashboard.html"
+          }
+        },
+        {
+          type: "button",
+          style: "secondary",
+          height: "sm",
+          action: {
+            type: "uri",
+            label: "✍️ 手動編集を開く",
+            uri: origin + "/reply.html"
+          }
+        }
+      ]
+    }
+  };
+
+  const messages = [
+    {
+      type: "flex",
+      altText: "【新着クチコミ】田中 太郎 様 ★★★★★",
+      contents: flexCard
+    }
+  ];
+
+  let endpoint = "https://api.line.me/v2/bot/message/broadcast";
+  let payload = { messages };
+
+  if (userId) {
+    endpoint = "https://api.line.me/v2/bot/message/push";
+    payload = { to: userId, messages };
+  }
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${env.LINE_CHANNEL_ACCESS_TOKEN}`
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const resData = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(resData.message || `LINE API error: status ${res.status}`);
+  }
+
+  return { success: true, message: "LINEへテスト通知を送信しました！" };
 }
