@@ -19,8 +19,8 @@
       animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     @keyframes slideUp {
-      from { opacity: 0; transform: translate(-50%, 20px); }
-      to { opacity: 1; transform: translate(-50%, 0); }
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
@@ -809,7 +809,7 @@
 
               <!-- Actions -->
               <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                <button type="button" onclick="quickReply('${escapeHtml(r.id)}', '${escapeHtml(r.location_id)}', '${encodeURIComponent(draftReply)}', this)" class="flex-1 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-3.5 rounded-xl shadow-xs hover:shadow-md transition flex items-center justify-center gap-1.5">
+                <button type="button" data-review-id="${escapeHtml(r.id)}" data-location-id="${escapeHtml(r.location_id)}" data-preview-id="draft-preview-${idx}" onclick="quickReplyByDataset(this)" class="flex-1 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-3.5 rounded-xl shadow-xs hover:shadow-md transition flex items-center justify-center gap-1.5">
                   <span>🤖</span> このAI案で即時返信
                 </button>
                 <a href="/reply.html?review_id=${encodeURIComponent(r.id)}&location_id=${encodeURIComponent(r.location_id)}" class="inline-flex items-center justify-center gap-1 text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 py-2 px-3.5 rounded-xl transition shadow-2xs">
@@ -843,8 +843,25 @@
     // =========================================================================
     // 3. AI案による即時返信アクション (POST /api/reviews/reply)
     // =========================================================================
-    async function quickReply(reviewId, locationId, encodedText, buttonEl) {
-      const replyText = decodeURIComponent(encodedText);
+    async function quickReplyByDataset(buttonEl) {
+      const reviewId = buttonEl.dataset.reviewId;
+      const locationId = buttonEl.dataset.locationId;
+      const previewId = buttonEl.dataset.previewId;
+      const previewEl = document.getElementById(previewId);
+      let replyText = previewEl ? previewEl.innerText.trim() : '';
+      if (replyText.startsWith('「') && replyText.endsWith('」')) {
+        replyText = replyText.slice(1, -1);
+      }
+      return quickReply(reviewId, locationId, replyText, buttonEl);
+    }
+
+    async function quickReply(reviewId, locationId, replyTextOrEncoded, buttonEl) {
+      let replyText = replyTextOrEncoded;
+      if (typeof replyTextOrEncoded === 'string' && (replyTextOrEncoded.includes('%') || !replyTextOrEncoded.includes(' '))) {
+        try {
+          replyText = decodeURIComponent(replyTextOrEncoded);
+        } catch (e) {}
+      }
       const origHtml = buttonEl.innerHTML;
 
       buttonEl.disabled = true;
@@ -1089,7 +1106,7 @@
 
       setTimeout(() => {
         toast.style.opacity = '0';
-        toast.style.transform = 'translate(-50%, 10px)';
+        toast.style.transform = 'translateY(10px)';
         setTimeout(() => toast.remove(), 300);
       }, 3500);
     }

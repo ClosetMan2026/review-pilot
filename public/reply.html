@@ -149,6 +149,12 @@
 
     async function initPage() {
       const urlParams = new URLSearchParams(window.location.search);
+      const status = urlParams.get('status');
+      if (status === 'success') {
+        const modal = document.getElementById('modal');
+        if (modal) modal.classList.remove('hidden');
+      }
+
       const reviewId = urlParams.get('review_id');
       currentLocationId = urlParams.get('location_id');
 
@@ -187,10 +193,25 @@
               currentReview = matched;
               if (!currentLocationId) currentLocationId = matched.location_id;
 
-              document.getElementById('reviewer-name').innerText = `${matched.reviewer_name || 'お客様'} 様のクチコミ`;
+              const rawReviewer = (matched.reviewer_name || 'お客様').trim();
+              const formattedReviewer = rawReviewer.endsWith('様') ? rawReviewer : `${rawReviewer} 様`;
+              document.getElementById('reviewer-name').innerText = `${formattedReviewer}のクチコミ`;
+
               document.getElementById('review-stars').innerText = '★'.repeat(matched.star_rating || 5) + '☆'.repeat(Math.max(0, 5 - (matched.star_rating || 5)));
               document.getElementById('review-time').innerText = formatDate(matched.review_created_at || matched.created_at);
               document.getElementById('review-comment').innerText = `「${matched.comment || ''}」`;
+
+              // 外国語翻訳表示
+              const transBox = document.getElementById('review-translation-box');
+              const transText = document.getElementById('review-translation-text');
+              if (transBox && transText) {
+                if (matched.translated_comment) {
+                  transText.innerText = matched.translated_comment;
+                  transBox.classList.remove('hidden');
+                } else {
+                  transBox.classList.add('hidden');
+                }
+              }
 
               if (matched.generated_reply_a) templates.a = matched.generated_reply_a;
               if (matched.generated_reply_b) templates.b = matched.generated_reply_b;

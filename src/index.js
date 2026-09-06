@@ -144,9 +144,18 @@ export default {
 
     // 1. API: AI返信生成 (Gemini Flash)
     if (url.pathname === '/api/generate' && request.method === 'POST') {
+      let body;
       try {
-        const body = await request.json();
-        const { rating, comment, category, locationName } = body;
+        body = await request.json();
+      } catch (e) {
+        return jsonResponse({ success: false, error: "無効なJSONリクエストです。" }, 400);
+      }
+
+      try {
+        const { rating, comment, category, locationName } = body || {};
+        if (!comment) {
+          return jsonResponse({ success: false, error: "クチコミ本文 (comment) が入力されていません。" }, 400);
+        }
 
         const replies = await generateRepliesWithGemini(env, { rating, comment, category, locationName });
         return jsonResponse({ success: true, replies });
@@ -165,6 +174,9 @@ export default {
       // トークン検証と返信実行
       const result = await handleMagicLinkReply(env, token);
       if (result.success) {
+        if (result.redirectUrl) {
+          return addSecurityHeaders(Response.redirect(`${url.origin}${result.redirectUrl}`, 302), corsHeaders);
+        }
         return addSecurityHeaders(Response.redirect(`${url.origin}/reply.html?status=success`, 302), corsHeaders);
       } else {
         return addSecurityHeaders(new Response(`Error: ${result.error}`, { status: 400 }), corsHeaders);
@@ -197,12 +209,19 @@ export default {
     // 5. API: Stripe カスタマーポータル セッション作成 (解約・カード変更・領収書)
     if (url.pathname === '/api/stripe/create-portal-session' && request.method === 'POST') {
       try {
-        let body = {};
-        try { body = await request.json(); } catch (e) {}
-        const result = await createStripePortalSession(env, url.origin, body);
+        const sessionToken = extractSessionToken(request);
+        if (!sessionToken) {
+          return jsonResponse({ success: false, error: "ログインが必要です。" }, 401);
+        }
+        const user = await getUserBySession(env.DB, sessionToken);
+        if (!user) {
+          return jsonResponse({ success: false, error: "セッションが無効です。再ログインしてください。" }, 401);
+        }
+
+        const result = await createStripePortalSession(env, url.origin, user);
         return jsonResponse(result);
       } catch (err) {
-        return jsonResponse({ success: false, error: err.message }, 500);
+        return jsonResponse({ success: false, error: err.message }, 400);
       }
     }
 
@@ -211,6 +230,15 @@ export default {
       try {
         const rawBody = await request.text();
         const sig = request.headers.get('stripe-signature');
+
+        // Webhookシークレット設定時は署名検証を厳格に実行
+        if (env.STRIPE_WEBHOOK_SECRET) {
+          const isValid = await verifyStripeSignature(rawBody, sig, env.STRIPE_WEBHOOK_SECRET);
+          if (!isValid) {
+            return addSecurityHeaders(new Response("Webhook Error: Invalid stripe-signature", { status: 400 }), corsHeaders);
+          }
+        }
+
         const result = await handleStripeWebhook(env, rawBody, sig);
         return jsonResponse({ received: true });
       } catch (err) {
@@ -233,10 +261,13 @@ export default {
         const rawBody = await request.text();
         const sig = request.headers.get('x-line-signature');
         
-        // 署名検証 (開発時の検証リクエストも受け付ける)
-        const isValid = await verifyLineSignature(rawBody, env.LINE_CHANNEL_SECRET, sig);
-        if (!isValid && env.LINE_CHANNEL_SECRET) {
-          console.warn("Invalid LINE webhook signature");
+        // 署名検証 (シークレット設定時は厳格に遮断)
+        if (env.LINE_CHANNEL_SECRET) {
+          const isValid = await verifyLineSignature(rawBody, env.LINE_CHANNEL_SECRET, sig);
+          if (!isValid) {
+            console.warn("Invalid LINE webhook signature - Request rejected");
+            return jsonResponse({ error: "Invalid signature" }, 403);
+          }
         }
 
         let body = {};
@@ -257,9 +288,29 @@ export default {
     // 9. API: LINE テスト通知送信 (Flex Message)
     if (url.pathname === '/api/line/test-push' && request.method === 'POST') {
       try {
+        const sessionToken = extractSessionToken(request);
+        if (!sessionToken) {
+          return jsonResponse({ success: false, error: "ログインが必要です。" }, 401);
+        }
+        const user = await getUserBySession(env.DB, sessionToken);
+        if (!user) {
+          return jsonResponse({ success: false, error: "セッションが無効です。" }, 401);
+        }
+
         let body = {};
         try { body = await request.json(); } catch (e) {}
-        const result = await sendLineTestPush(env, url.origin, body);
+
+        let targetLineUserId = body.userId;
+        if (!targetLineUserId) {
+          const locs = await getUserLocations(env.DB, user.id);
+          targetLineUserId = locs[0]?.line_user_id;
+        }
+
+        if (!targetLineUserId) {
+          return jsonResponse({ success: false, error: "LINEユーザーIDが設定されていません。管理画面から設定してください。" }, 400);
+        }
+
+        const result = await sendLineTestPush(env, url.origin, { userId: targetLineUserId });
         return jsonResponse(result);
       } catch (err) {
         return jsonResponse({ success: false, error: err.message }, 500);
@@ -315,8 +366,12 @@ export default {
           return jsonResponse({ success: false, error: "Unauthorized" }, 401);
         }
 
-        const body = await request.json();
+        let body = {};
+        try { body = await request.json(); } catch (e) {}
         const locationId = body.locationId || body.location_id;
+        if (!locationId) {
+          return jsonResponse({ success: false, error: "店舗ID (locationId) が指定されていません。" }, 400);
+        }
         const locationName = body.locationName || body.location_name;
         const category = body.category;
         const address = body.address;
@@ -519,8 +574,11 @@ async function handleMagicLinkReply(env, token) {
       finalReply = tokenRecord.generated_reply_c;
       status = 'replied_c';
     } else {
-      // manual_edit 等の場合はそのまま画面へ
-      return { success: true };
+      // manual_edit 等の場合は返信編集画面へ直接遷移
+      return {
+        success: true,
+        redirectUrl: `/reply.html?review_id=${encodeURIComponent(tokenRecord.review_id)}&location_id=${encodeURIComponent(tokenRecord.location_id)}`
+      };
     }
 
     // レビューの返信ステータス更新 & トークン使用済みマーク
@@ -608,27 +666,19 @@ async function createStripeCheckoutSession(env, origin, { customerEmail, custome
 
 /**
  * Stripe Customer Portal Session 作成 (解約・カード変更・領収書)
+ * マルチテナント分離: 必ずログイン中本人の stripe_customer_id のみを使用
  */
-async function createStripePortalSession(env, origin, { customerId }) {
+async function createStripePortalSession(env, origin, user) {
   const secretKey = env.STRIPE_SECRET_KEY;
   if (!secretKey) throw new Error("Stripe シークレットキーが設定されていません。");
 
-  let targetCustomer = customerId;
-  if (!targetCustomer) {
-    // 顧客IDが指定されていない場合、直近の顧客を自動検索
-    const listRes = await fetch('https://api.stripe.com/v1/customers?limit=1', {
-      headers: { 'Authorization': `Bearer ${secretKey}` }
-    });
-    const listData = await listRes.json();
-    if (listData.data && listData.data.length > 0) {
-      targetCustomer = listData.data[0].id;
-    } else {
-      throw new Error("有効なお客様情報が見つかりませんでした。先にお支払い登録をお済ませください。");
-    }
+  const customerId = user?.stripe_customer_id;
+  if (!customerId) {
+    throw new Error("Stripeのお支払い情報が登録されていません。先に有料プランまたは無料トライアルにお申し込みください。");
   }
 
   const params = {
-    'customer': targetCustomer,
+    'customer': customerId,
     'return_url': `${origin}/dashboard.html`
   };
 
@@ -704,6 +754,56 @@ async function handleStripeWebhook(env, rawBody, sig) {
   }
 
   return { success: true };
+}
+
+/**
+ * Stripe Webhook 署名検証 (Web Crypto API)
+ */
+export async function verifyStripeSignature(rawBody, sigHeader, secret) {
+  if (!sigHeader || !secret) return false;
+  try {
+    const parts = sigHeader.split(',');
+    let timestamp = '';
+    const signatures = [];
+    for (const part of parts) {
+      const [k, v] = part.trim().split('=');
+      if (k === 't') timestamp = v;
+      if (k === 'v1') signatures.push(v);
+    }
+    if (!timestamp || signatures.length === 0) return false;
+
+    // 許容範囲チェック (5分以内)
+    const now = Math.floor(Date.now() / 1000);
+    const ts = parseInt(timestamp, 10);
+    if (isNaN(ts) || Math.abs(now - ts) > 300) {
+      console.warn("Stripe webhook timestamp out of tolerance");
+      return false;
+    }
+
+    const signedPayload = `${timestamp}.${rawBody}`;
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(secret);
+    const key = await crypto.subtle.importKey(
+      "raw",
+      keyData,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const hmacBuffer = await crypto.subtle.sign("HMAC", key, encoder.encode(signedPayload));
+    const hmacArray = new Uint8Array(hmacBuffer);
+    const expectedSig = Array.from(hmacArray).map(b => b.toString(16).padStart(2, '0')).join('');
+
+    for (const sig of signatures) {
+      if (timingSafeEqual(sig, expectedSig)) {
+        return true;
+      }
+    }
+    return false;
+  } catch (err) {
+    console.error("verifyStripeSignature error:", err);
+    return false;
+  }
 }
 
 /**
@@ -916,13 +1016,12 @@ async function sendLineTestPush(env, origin, { userId }) {
     }
   ];
 
-  let endpoint = "https://api.line.me/v2/bot/message/broadcast";
-  let payload = { messages };
-
-  if (userId) {
-    endpoint = "https://api.line.me/v2/bot/message/push";
-    payload = { to: userId, messages };
+  if (!userId) {
+    throw new Error("送信先のLINEユーザーIDが指定されていません。");
   }
+
+  const endpoint = "https://api.line.me/v2/bot/message/push";
+  const payload = { to: userId, messages };
 
   const res = await fetch(endpoint, {
     method: "POST",
