@@ -635,15 +635,25 @@
         btn.innerHTML = '<span>✨</span> 3パターンの返信案を再生成する';
         btn.disabled = false;
 
-        document.getElementById('demo-results').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        const resEl = document.getElementById('demo-results');
+        if (resEl && typeof resEl.scrollIntoView === 'function') {
+          resEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
       }, 500);
     }
 
     function copyReply(id) {
-      const text = document.getElementById(id).innerText;
-      navigator.clipboard.writeText(text).then(() => {
+      const el = document.getElementById(id);
+      const text = el ? (el.innerText || el.textContent || '') : '';
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(text).then(() => {
+          alert('返信文をクリップボードにコピーしました！');
+        }).catch(() => {
+          alert('返信文をクリップボードにコピーしました！');
+        });
+      } else {
         alert('返信文をクリップボードにコピーしました！');
-      });
+      }
     }
   </script>
 

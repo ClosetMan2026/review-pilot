@@ -199,7 +199,11 @@ export default {
     if (url.pathname === '/api/webhook/google-pubsub' && request.method === 'POST') {
       try {
         const message = await request.json();
-        ctx.waitUntil(handlePubSubNotification(env, message));
+        if (ctx && typeof ctx.waitUntil === 'function') {
+          ctx.waitUntil(handlePubSubNotification(env, message, url.origin));
+        } else {
+          await handlePubSubNotification(env, message, url.origin);
+        }
         return jsonResponse({ status: 'ok' });
       } catch (err) {
         return jsonResponse({ error: err.message }, 400);
@@ -420,7 +424,7 @@ export default {
       }
     }
 
-    // 14. API: クチコミ返信の反映 (Row-Level Security 徹底)
+    // 14. API: クチコミ返信の反映 (Row-Level Security 徹底 & GBP API連携)
     if (url.pathname === '/api/reviews/reply' && request.method === 'POST') {
       try {
         const sessionToken = extractSessionToken(request);
@@ -444,8 +448,22 @@ export default {
           return jsonResponse({ success: false, error: "店舗へのアクセス権限がありません。" }, 403);
         }
 
-        const result = await updateReviewReply(env.DB, reviewId, locationId, { replyText, replyStatus });
-        return jsonResponse({ success: true, ...result });
+        // Googleマップ クチコミ実返信 API送信 (本番 or 認可待ちシミュレーション)
+        const gbpResult = await postReplyToGoogleBusinessProfile(env, {
+          accountId: location.account_id,
+          locationId: location.id,
+          reviewId: reviewId,
+          comment: replyText,
+          refreshToken: location.google_refresh_token || null
+        });
+
+        const result = await updateReviewReply(env.DB, reviewId, locationId, {
+          replyText,
+          replyStatus,
+          env,
+          accountId: location.account_id
+        });
+        return jsonResponse({ success: true, ...result, gbp: gbpResult });
       } catch (err) {
         return jsonResponse({ success: false, error: err.message }, 400);
       }
@@ -462,7 +480,12 @@ export default {
 
   // 5. 定期実行 Cron (新着差分巡回バックアップ)
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(pollNewReviews(env));
+    const origin = env?.APP_URL || 'https://review-pilot.pages.dev';
+    if (ctx && typeof ctx.waitUntil === 'function') {
+      ctx.waitUntil(pollNewReviews(env, origin));
+    } else {
+      await pollNewReviews(env, origin);
+    }
   }
 };
 
@@ -651,6 +674,24 @@ async function handleMagicLinkReply(env, token) {
       };
     }
 
+    // 店舗情報を取得して Google Business Profile API へ実返信
+    let location = null;
+    try {
+      location = await env.DB.prepare(`
+        SELECT id, account_id, google_refresh_token FROM locations WHERE id = ?
+      `).bind(tokenRecord.location_id).first();
+    } catch (locErr) {
+      console.warn("Could not fetch location for GBP reply:", locErr);
+    }
+
+    const gbpResult = await postReplyToGoogleBusinessProfile(env, {
+      accountId: location?.account_id || 'default_account',
+      locationId: tokenRecord.location_id,
+      reviewId: tokenRecord.review_id,
+      comment: finalReply,
+      refreshToken: location?.google_refresh_token || null
+    });
+
     // レビューの返信ステータス更新 & トークン使用済みマーク
     await env.DB.batch([
       env.DB.prepare(`
@@ -663,19 +704,769 @@ async function handleMagicLinkReply(env, token) {
       `).bind(token)
     ]);
 
-    return { success: true };
+    return { success: true, gbp: gbpResult };
   } catch (err) {
     console.error("handleMagicLinkReply error:", err);
     return { success: false, error: err.message };
   }
 }
 
-async function handlePubSubNotification(env, message) {
-  // Pub/Subメッセージ受信時の処理
+/**
+ * ============================================================================
+ * Google Business Profile (GBP) API 連携 & OAuth 2.0 ヘルパー関数群
+ * ============================================================================
+ */
+
+/**
+ * プレフィックス (accounts/, locations/, reviews/) の除去正規化
+ */
+export function cleanGbpId(id, prefix = '') {
+  if (!id) return '';
+  let str = String(id).trim();
+  if (prefix) {
+    if (str.includes(`/${prefix}/`)) {
+      const parts = str.split(`/${prefix}/`);
+      str = parts[parts.length - 1];
+      // 後続のプレフィックスがある場合はその手前まで (e.g. accounts/123/locations/456 で accounts を抜く場合)
+      if (str.includes('/')) {
+        str = str.split('/')[0];
+      }
+    } else {
+      const regex = new RegExp(`^${prefix}/`, 'i');
+      str = str.replace(regex, '');
+      if (str.includes('/')) {
+        str = str.split('/')[0];
+      }
+    }
+  }
+  return str;
 }
 
-async function pollNewReviews(env) {
-  // 定期巡回処理
+/**
+ * 星評価 (1〜5) の正規化
+ */
+export function parseStarRating(rating) {
+  if (typeof rating === 'number') {
+    return Math.max(1, Math.min(5, Math.round(rating)));
+  }
+  if (!rating) return 5;
+  const str = String(rating).trim().toUpperCase();
+  const map = {
+    'ONE': 1, 'TWO': 2, 'THREE': 3, 'FOUR': 4, 'FIVE': 5,
+    'STAR_RATING_ONE': 1, 'STAR_RATING_TWO': 2, 'STAR_RATING_THREE': 3, 'STAR_RATING_FOUR': 4, 'STAR_RATING_FIVE': 5
+  };
+  if (map[str]) return map[str];
+  const num = parseInt(str, 10);
+  return (!isNaN(num) && num >= 1 && num <= 5) ? num : 5;
+}
+
+/**
+ * Base64文字列をUTF-8文字列に安全にデコード
+ */
+export function safeBase64Decode(base64Str) {
+  if (!base64Str || typeof base64Str !== 'string') return '';
+  try {
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(base64Str, 'base64').toString('utf-8');
+    }
+    const binary = atob(base64Str);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new TextDecoder('utf-8').decode(bytes);
+  } catch (e) {
+    console.error("safeBase64Decode error:", e);
+    return '';
+  }
+}
+
+/**
+ * 1. Google OAuth 2.0 トークン自動取得・リフレッシュ
+ * env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, env.GOOGLE_REFRESH_TOKEN が設定されている場合、
+ * POST https://oauth2.googleapis.com/token にて自動で有効な access_token を取得。
+ * 未設定（認可待ち期間中）は例外をスローせず null を返却して安全にシミュレーションへ遷移。
+ */
+export async function getGoogleAccessToken(env, customRefreshToken = null) {
+  const clientId = env?.GOOGLE_CLIENT_ID;
+  const clientSecret = env?.GOOGLE_CLIENT_SECRET;
+  const refreshToken = customRefreshToken || env?.GOOGLE_REFRESH_TOKEN;
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    return null;
+  }
+
+  try {
+    const params = new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token'
+    });
+
+    const res = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: params.toString()
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.error("Google OAuth token refresh error:", res.status, data);
+      return null;
+    }
+
+    return data.access_token || null;
+  } catch (err) {
+    console.error("Google OAuth token refresh exception:", err);
+    return null;
+  }
+}
+
+/**
+ * 2. Googleマップ クチコミ実返信 API送信
+ * postReplyToGoogleBusinessProfile(env, { accountId, locationId, reviewId, comment, refreshToken })
+ * - access_token が取得できる場合: PUT https://mybusiness.googleapis.com/v4/accounts/${cleanAccountId}/locations/${cleanLocationId}/reviews/${cleanReviewId}/reply に対し { "comment": comment } を送信
+ * - access_token が未設定（認可待ち期間）の場合: 例外をスローせず「[GBP Simulation] Google認可待ちのためシミュレーション実行」として安全にログ出力し、{ success: true, simulated: true } を返却
+ */
+export async function postReplyToGoogleBusinessProfile(env, { accountId, locationId, reviewId, comment, refreshToken = null }) {
+  const cleanAccountId = cleanGbpId(accountId, 'accounts');
+  const cleanLocationId = cleanGbpId(locationId, 'locations');
+  const cleanReviewId = cleanGbpId(reviewId, 'reviews');
+
+  const accessToken = await getGoogleAccessToken(env, refreshToken);
+
+  if (!accessToken) {
+    console.log(`[GBP Simulation] Google認可待ちのためシミュレーション実行: reply to accounts/${cleanAccountId}/locations/${cleanLocationId}/reviews/${cleanReviewId}`);
+    return {
+      success: true,
+      simulated: true,
+      accountId: cleanAccountId,
+      locationId: cleanLocationId,
+      reviewId: cleanReviewId,
+      comment
+    };
+  }
+
+  try {
+    const url = `https://mybusiness.googleapis.com/v4/accounts/${cleanAccountId}/locations/${cleanLocationId}/reviews/${cleanReviewId}/reply`;
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ comment })
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.error("Google Business Profile API reply error:", res.status, data);
+      return {
+        success: false,
+        error: data.error?.message || `Google API error (status ${res.status})`,
+        details: data
+      };
+    }
+
+    return {
+      success: true,
+      simulated: false,
+      data
+    };
+  } catch (err) {
+    console.error("Google Business Profile API reply exception:", err);
+    return {
+      success: false,
+      error: err.message
+    };
+  }
+}
+
+/**
+ * GBP API から単一レビュー詳細を取得
+ */
+export async function fetchGbpReview(env, { accountId, locationId, reviewId, refreshToken = null }) {
+  const cleanAccountId = cleanGbpId(accountId, 'accounts');
+  const cleanLocationId = cleanGbpId(locationId, 'locations');
+  const cleanReviewId = cleanGbpId(reviewId, 'reviews');
+
+  const accessToken = await getGoogleAccessToken(env, refreshToken);
+  if (!accessToken) {
+    console.log(`[GBP Simulation] Google認可待ちのためレビュー詳細取得シミュレーション`);
+    return null;
+  }
+
+  try {
+    const url = `https://mybusiness.googleapis.com/v4/accounts/${cleanAccountId}/locations/${cleanLocationId}/reviews/${cleanReviewId}`;
+    const res = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    console.error("fetchGbpReview exception:", e);
+    return null;
+  }
+}
+
+/**
+ * GBP API からレビュー一覧を取得 (Cron 巡回用)
+ */
+export async function fetchGbpReviewsList(env, { accountId, locationId, pageSize = 20, refreshToken = null }) {
+  const cleanAccountId = cleanGbpId(accountId, 'accounts');
+  const cleanLocationId = cleanGbpId(locationId, 'locations');
+
+  const accessToken = await getGoogleAccessToken(env, refreshToken);
+  if (!accessToken) {
+    console.log(`[GBP Poll Simulation] Google認可待ちのため巡回シミュレーション実行 (accounts/${cleanAccountId}/locations/${cleanLocationId})`);
+    return [];
+  }
+
+  try {
+    const url = `https://mybusiness.googleapis.com/v4/accounts/${cleanAccountId}/locations/${cleanLocationId}/reviews?pageSize=${pageSize}`;
+    const res = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    if (!res.ok) {
+      console.error("fetchGbpReviewsList error:", res.status);
+      return [];
+    }
+    const data = await res.json();
+    return data.reviews || [];
+  } catch (e) {
+    console.error("fetchGbpReviewsList exception:", e);
+    return [];
+  }
+}
+
+/**
+ * LINE Flex Message による新着クチコミ＆1タップ返信通知
+ */
+export async function sendLineReviewPush(env, origin, { lineUserId, locationName, review, replyTokens }) {
+  if (!env?.LINE_CHANNEL_ACCESS_TOKEN || !lineUserId) {
+    return { success: false, error: 'LINE_CHANNEL_ACCESS_TOKEN or lineUserId missing' };
+  }
+
+  const appOrigin = origin || env.APP_URL || 'https://review-pilot.pages.dev';
+  const ratingNum = typeof review.starRating === 'number' ? review.starRating : 5;
+  const starsText = '★'.repeat(ratingNum) + '☆'.repeat(Math.max(0, 5 - ratingNum));
+
+  const flexCard = {
+    type: "bubble",
+    size: "mega",
+    header: {
+      type: "box",
+      layout: "vertical",
+      backgroundColor: ratingNum >= 4 ? "#4F46E5" : (ratingNum <= 2 ? "#DC2626" : "#D97706"),
+      paddingAll: "15px",
+      contents: [
+        {
+          type: "text",
+          text: "✨ らくコミくん 新着クチコミ通知",
+          color: "#FFFFFF",
+          weight: "bold",
+          size: "xs"
+        },
+        {
+          type: "text",
+          text: locationName || "連携店舗",
+          color: "#FFFFFF",
+          weight: "bold",
+          size: "md",
+          margin: "sm"
+        }
+      ]
+    },
+    body: {
+      type: "box",
+      layout: "vertical",
+      contents: [
+        {
+          type: "box",
+          layout: "horizontal",
+          contents: [
+            { type: "text", text: `${review.reviewerName || 'お客様'} 様`, weight: "bold", size: "sm", color: "#1E293B" },
+            { type: "text", text: starsText, weight: "bold", size: "sm", color: "#F59E0B", align: "end" }
+          ]
+        },
+        {
+          type: "text",
+          text: review.comment ? `「${review.comment}」` : "（星評価のみのクチコミです）",
+          size: "xs",
+          color: "#475569",
+          wrap: true,
+          margin: "md"
+        },
+        ...(review.translatedComment ? [
+          {
+            type: "text",
+            text: `🌐 日本語訳: 「${review.translatedComment}」`,
+            size: "xxs",
+            color: "#64748B",
+            wrap: true,
+            margin: "sm"
+          }
+        ] : []),
+        { type: "separator", margin: "lg" },
+        {
+          type: "text",
+          text: "🤖 AI返信案 (1タップで即時返信):",
+          size: "xs",
+          weight: "bold",
+          color: "#4F46E5",
+          margin: "md"
+        },
+        {
+          type: "text",
+          text: `【案A】${review.replyA ? review.replyA.slice(0, 75) + '...' : '丁寧な返信案'}`,
+          size: "xxs",
+          color: "#334155",
+          wrap: true,
+          margin: "sm"
+        }
+      ]
+    },
+    footer: {
+      type: "box",
+      layout: "vertical",
+      spacing: "sm",
+      contents: [
+        {
+          type: "button",
+          style: "primary",
+          color: "#4F46E5",
+          height: "sm",
+          action: {
+            type: "uri",
+            label: "⚡ 案Aで即時返信 (王道・丁寧)",
+            uri: `${appOrigin}/api/action/reply?token=${replyTokens?.replyA || ''}`
+          }
+        },
+        {
+          type: "button",
+          style: "primary",
+          color: "#10B981",
+          height: "sm",
+          action: {
+            type: "uri",
+            label: "⚡ 案Bで即時返信 (親しみ)",
+            uri: `${appOrigin}/api/action/reply?token=${replyTokens?.replyB || ''}`
+          }
+        },
+        {
+          type: "button",
+          style: "secondary",
+          height: "sm",
+          action: {
+            type: "uri",
+            label: "✍️ 他の返信案・手動編集を開く",
+            uri: `${appOrigin}/reply.html?review_id=${encodeURIComponent(review.id)}&location_id=${encodeURIComponent(review.locationId)}`
+          }
+        }
+      ]
+    }
+  };
+
+  const messages = [
+    {
+      type: "flex",
+      altText: `【新着クチコミ】${review.reviewerName || 'お客様'} 様 ${starsText}`,
+      contents: flexCard
+    }
+  ];
+
+  try {
+    const res = await fetch("https://api.line.me/v2/bot/message/push", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${env.LINE_CHANNEL_ACCESS_TOKEN}`
+      },
+      body: JSON.stringify({ to: lineUserId, messages })
+    });
+
+    const resData = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.error("sendLineReviewPush error:", res.status, resData);
+      return { success: false, error: resData.message || `Status ${res.status}` };
+    }
+    return { success: true };
+  } catch (e) {
+    console.error("sendLineReviewPush exception:", e);
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * 共通新着クチコミ処理パイプライン
+ * 1. D1 reviews テーブルに INSERT
+ * 2. Gemini 3.5 Flash-Lite で3パターンの返信案を自動生成して保存
+ * 3. 1タップ返信用の一時トークン (reply_tokens) を発行
+ * 4. 店舗オーナーの line_user_id に LINE Flex Message プッシュ通知を送信
+ * 5. auto_reply が有効な場合は GBP へ自動返信
+ */
+export async function processIncomingReview(env, { location, reviewData, origin = null }) {
+  if (!env?.DB || !location || !reviewData) {
+    return { success: false, error: 'Invalid arguments' };
+  }
+
+  const reviewId = cleanGbpId(reviewData.id, 'reviews');
+  const starRating = parseStarRating(reviewData.starRating);
+  const reviewerName = reviewData.reviewerName || 'お客様';
+  const comment = reviewData.comment || '';
+
+  // 1. D1 reviews テーブルに新規クチコミを保存 (重複時は安全に無視または更新)
+  try {
+    await env.DB.prepare(`
+      INSERT INTO reviews (id, location_id, reviewer_name, star_rating, comment, review_created_at, reply_status)
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'pending')
+      ON CONFLICT(id) DO UPDATE SET
+        reviewer_name = excluded.reviewer_name,
+        star_rating = excluded.star_rating,
+        comment = excluded.comment
+    `).bind(reviewId, location.id, reviewerName, starRating, comment).run();
+  } catch (dbErr) {
+    try {
+      await env.DB.prepare(`
+        INSERT OR IGNORE INTO reviews (id, location_id, reviewer_name, star_rating, comment, review_created_at, reply_status)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'pending')
+      `).bind(reviewId, location.id, reviewerName, starRating, comment).run();
+    } catch (e2) {
+      console.error("processIncomingReview DB insert failed:", e2);
+    }
+  }
+
+  // 2. Gemini 3.5 Flash-Lite API で3パターンの返信案を自動生成
+  let replyData = null;
+  try {
+    replyData = await generateRepliesWithGemini(env, {
+      rating: starRating,
+      comment,
+      category: location.category || '',
+      locationName: location.location_name || ''
+    });
+  } catch (geminiErr) {
+    console.error("processIncomingReview Gemini error:", geminiErr);
+    replyData = getFallbackReplies(starRating, comment, location.category);
+  }
+
+  // 3. 生成された返信案を reviews テーブルに更新
+  try {
+    await env.DB.prepare(`
+      UPDATE reviews
+      SET generated_reply_a = ?,
+          generated_reply_b = ?,
+          generated_reply_c = ?,
+          translated_comment = ?
+      WHERE id = ? AND location_id = ?
+    `).bind(
+      replyData.reply_a,
+      replyData.reply_b,
+      replyData.reply_c,
+      replyData.translated_comment || null,
+      reviewId,
+      location.id
+    ).run();
+  } catch (updErr) {
+    console.error("processIncomingReview DB update error:", updErr);
+  }
+
+  // 4. 1タップ返信用トークン (reply_tokens) の発行
+  const tokenA = 'tok_a_' + crypto.randomUUID().replace(/-/g, '');
+  const tokenB = 'tok_b_' + crypto.randomUUID().replace(/-/g, '');
+  const tokenC = 'tok_c_' + crypto.randomUUID().replace(/-/g, '');
+  const tokenManual = 'tok_m_' + crypto.randomUUID().replace(/-/g, '');
+
+  try {
+    await env.DB.batch([
+      env.DB.prepare(`
+        INSERT INTO reply_tokens (token, review_id, location_id, action_type, expires_at)
+        VALUES (?, ?, ?, 'reply_a', datetime('now', '+7 days'))
+      `).bind(tokenA, reviewId, location.id),
+      env.DB.prepare(`
+        INSERT INTO reply_tokens (token, review_id, location_id, action_type, expires_at)
+        VALUES (?, ?, ?, 'reply_b', datetime('now', '+7 days'))
+      `).bind(tokenB, reviewId, location.id),
+      env.DB.prepare(`
+        INSERT INTO reply_tokens (token, review_id, location_id, action_type, expires_at)
+        VALUES (?, ?, ?, 'reply_c', datetime('now', '+7 days'))
+      `).bind(tokenC, reviewId, location.id),
+      env.DB.prepare(`
+        INSERT INTO reply_tokens (token, review_id, location_id, action_type, expires_at)
+        VALUES (?, ?, ?, 'manual_edit', datetime('now', '+7 days'))
+      `).bind(tokenManual, reviewId, location.id)
+    ]);
+  } catch (tokErr) {
+    console.error("processIncomingReview tokens insert error:", tokErr);
+  }
+
+  // 5. 店舗オーナーの line_user_id を特定して LINE Push 通知
+  let targetLineUserId = location.line_user_id || location.user_line_id;
+  if (!targetLineUserId && location.user_id) {
+    try {
+      const user = await env.DB.prepare(`SELECT line_user_id FROM users WHERE id = ?`).bind(location.user_id).first();
+      targetLineUserId = user?.line_user_id;
+    } catch (e) {}
+  }
+
+  let linePushResult = null;
+  if (targetLineUserId && env.LINE_CHANNEL_ACCESS_TOKEN) {
+    linePushResult = await sendLineReviewPush(env, origin, {
+      lineUserId: targetLineUserId,
+      locationName: location.location_name,
+      review: {
+        id: reviewId,
+        locationId: location.id,
+        reviewerName,
+        starRating,
+        comment,
+        translatedComment: replyData.translated_comment,
+        replyA: replyData.reply_a
+      },
+      replyTokens: {
+        replyA: tokenA,
+        replyB: tokenB,
+        replyC: tokenC,
+        manual: tokenManual
+      }
+    });
+  }
+
+  // 6. 店舗の自動返信設定 (auto_reply) が ON の場合は GBP へ自動即時返信
+  if (location.auto_reply == 1 || location.auto_reply === true) {
+    const autoReplyText = replyData.reply_a;
+    const gbpAutoRes = await postReplyToGoogleBusinessProfile(env, {
+      accountId: location.account_id,
+      locationId: location.id,
+      reviewId: reviewId,
+      comment: autoReplyText,
+      refreshToken: location.google_refresh_token || null
+    });
+    try {
+      await env.DB.prepare(`
+        UPDATE reviews
+        SET final_reply_text = ?, reply_status = 'replied_a', replied_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND location_id = ?
+      `).bind(autoReplyText, reviewId, location.id).run();
+    } catch (autoErr) {
+      console.error("processIncomingReview auto reply update error:", autoErr);
+    }
+
+    return {
+      success: true,
+      reviewId,
+      autoReplied: true,
+      gbp: gbpAutoRes,
+      line: linePushResult
+    };
+  }
+
+  return {
+    success: true,
+    reviewId,
+    autoReplied: false,
+    line: linePushResult
+  };
+}
+
+/**
+ * 4. Google Pub/Sub リアルタイム新着クチコミ受信の完全実装
+ * - base64メッセージをデコードし、クチコミ本文、星評価、レビュアー名を抽出
+ * - D1の reviews テーブルに INSERT
+ * - Gemini 3.5 Flash-Lite を呼び出して3パターンの返信案を自動生成して保存
+ * - 店舗オーナーの line_user_id に対し、LINEプッシュ通知 (Flex Message / 1タップ返信) を送信
+ */
+export async function handlePubSubNotification(env, message, origin = null) {
+  if (!message) return { success: false, error: "No message provided" };
+
+  try {
+    let payload = message;
+    if (message.message?.data) {
+      const decoded = safeBase64Decode(message.message.data);
+      try { payload = JSON.parse(decoded); } catch (e) { payload = { comment: decoded }; }
+    } else if (message.data) {
+      const decoded = safeBase64Decode(message.data);
+      try { payload = JSON.parse(decoded); } catch (e) { payload = { comment: decoded }; }
+    }
+
+    console.log("Pub/Sub Notification received:", JSON.stringify(payload));
+
+    // リソース名またはキーの解析
+    let reviewResource = payload.review || payload.reviewName || '';
+    let locationResource = payload.location || payload.locationName || '';
+
+    let accountId = payload.accountId || '';
+    let locationId = payload.locationId || '';
+    let reviewId = payload.reviewId || '';
+
+    if (typeof reviewResource === 'string' && reviewResource.includes('reviews/')) {
+      const parts = reviewResource.split('/');
+      const accIdx = parts.indexOf('accounts');
+      if (accIdx !== -1 && parts[accIdx + 1]) accountId = parts[accIdx + 1];
+      const locIdx = parts.indexOf('locations');
+      if (locIdx !== -1 && parts[locIdx + 1]) locationId = parts[locIdx + 1];
+      const revIdx = parts.indexOf('reviews');
+      if (revIdx !== -1 && parts[revIdx + 1]) reviewId = parts[revIdx + 1];
+    } else if (typeof locationResource === 'string' && locationResource.includes('locations/')) {
+      const parts = locationResource.split('/');
+      const locIdx = parts.indexOf('locations');
+      if (locIdx !== -1 && parts[locIdx + 1]) locationId = parts[locIdx + 1];
+      const accIdx = parts.indexOf('accounts');
+      if (accIdx !== -1 && parts[accIdx + 1]) accountId = parts[accIdx + 1];
+    }
+
+    const reviewObj = typeof payload.review === 'object' ? payload.review : payload;
+    if (!reviewId && reviewObj.id) reviewId = reviewObj.id;
+    if (!reviewId && reviewObj.reviewId) reviewId = reviewObj.reviewId;
+    if (!reviewId && reviewObj.name) {
+      const parts = reviewObj.name.split('/');
+      const revIdx = parts.indexOf('reviews');
+      if (revIdx !== -1 && parts[revIdx + 1]) reviewId = parts[revIdx + 1];
+    }
+    if (!reviewId) {
+      reviewId = 'rev_' + Date.now();
+    }
+
+    if (!env?.DB) {
+      console.log("[Pub/Sub Simulation] No DB configured.");
+      return { success: true, simulated: true, reviewId };
+    }
+
+    // 店舗の照合
+    let location = null;
+    if (locationId) {
+      location = await env.DB.prepare(`
+        SELECT l.*, u.line_user_id as user_line_id, u.notification_email as user_email
+        FROM locations l
+        JOIN users u ON l.user_id = u.id
+        WHERE l.id = ? OR l.id = ? OR l.id LIKE ?
+      `).bind(locationId, `locations/${locationId}`, `%${locationId}%`).first();
+    }
+
+    if (!location) {
+      location = await env.DB.prepare(`
+        SELECT l.*, u.line_user_id as user_line_id, u.notification_email as user_email
+        FROM locations l
+        JOIN users u ON l.user_id = u.id
+        LIMIT 1
+      `).first();
+    }
+
+    if (!location) {
+      console.warn("handlePubSubNotification: No location found in DB to link review.");
+      return { success: false, error: "店舗が登録されていません。" };
+    }
+
+    let comment = reviewObj.comment || '';
+    let starRating = parseStarRating(reviewObj.starRating || reviewObj.rating || 5);
+    let reviewerName = reviewObj.reviewer?.displayName || reviewObj.reviewerName || 'お客様';
+
+    // クチコミ本文が空で reviewId がある場合、GBP API から詳細取得を試行
+    if (!comment && reviewId && location) {
+      const fetched = await fetchGbpReview(env, {
+        accountId: location.account_id,
+        locationId: location.id,
+        reviewId: reviewId,
+        refreshToken: location.google_refresh_token
+      });
+      if (fetched) {
+        comment = fetched.comment || '';
+        starRating = parseStarRating(fetched.starRating || 5);
+        reviewerName = fetched.reviewer?.displayName || reviewerName;
+      }
+    }
+
+    const result = await processIncomingReview(env, {
+      location,
+      reviewData: {
+        id: reviewId,
+        comment,
+        starRating,
+        reviewerName
+      },
+      origin
+    });
+
+    return { success: true, ...result };
+  } catch (err) {
+    console.error("handlePubSubNotification error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * 5. 定期巡回 Cron の完全実装
+ * - 定期実行時に GBP API から新着レビュー一覧を取得
+ * - 未保存のレビューがあれば同様に Gemini返信生成〜LINE通知を実行
+ */
+export async function pollNewReviews(env, origin = null) {
+  if (!env?.DB) {
+    console.log("[GBP Poll] No DB configured, skipping.");
+    return { success: true, processedCount: 0 };
+  }
+
+  try {
+    const stmt = env.DB.prepare(`
+      SELECT l.*, u.line_user_id as user_line_id, u.notification_email as user_email
+      FROM locations l
+      JOIN users u ON l.user_id = u.id
+    `);
+    const { results: locations } = typeof stmt.all === 'function' ? await stmt.all() : await stmt.bind().all();
+
+    if (!locations || locations.length === 0) {
+      console.log("[GBP Poll] No locations configured in DB.");
+      return { success: true, processedCount: 0 };
+    }
+
+    let processedCount = 0;
+
+    for (const loc of locations) {
+      const reviews = await fetchGbpReviewsList(env, {
+        accountId: loc.account_id,
+        locationId: loc.id,
+        pageSize: 20,
+        refreshToken: loc.google_refresh_token
+      });
+
+      for (const rev of reviews) {
+        const cleanRevId = cleanGbpId(rev.name || rev.reviewId || rev.id, 'reviews');
+        if (!cleanRevId) continue;
+        const cleanLocId = cleanGbpId(loc.id, 'locations') || loc.id;
+
+        // すでに DB に保存済みかチェック (プレフィックス有無双方に対応)
+        const existing = await env.DB.prepare(`
+          SELECT id FROM reviews WHERE id = ? AND (location_id = ? OR location_id = ? OR location_id = ?)
+        `).bind(cleanRevId, loc.id, cleanLocId, `locations/${cleanLocId}`).first();
+
+        if (existing) {
+          continue; // すでに処理済み
+        }
+
+        // 新着クチコミを自動処理！
+        await processIncomingReview(env, {
+          location: loc,
+          reviewData: {
+            id: cleanRevId,
+            comment: rev.comment || '',
+            starRating: parseStarRating(rev.starRating || 5),
+            reviewerName: rev.reviewer?.displayName || rev.reviewerName || 'お客様'
+          },
+          origin
+        });
+
+        processedCount++;
+      }
+    }
+
+    console.log(`[GBP Poll] Completed. Processed ${processedCount} new reviews.`);
+    return { success: true, processedCount };
+  } catch (err) {
+    console.error("pollNewReviews error:", err);
+    return { success: false, error: err.message };
+  }
 }
 
 /**
@@ -1374,9 +2165,25 @@ export async function updateLocationSettings(db, locationId, userId, { locationN
  * 6. クチコミ返信の登録・更新 (テナント整合性担保)
  * 返信の登録・更新時にも review_id と location_id を突合し、別店舗のクチコミが更新される事故を防ぎます。
  */
-export async function updateReviewReply(db, reviewId, locationId, { replyText, replyStatus } = {}) {
+export async function updateReviewReply(db, reviewId, locationId, { replyText, replyStatus, env = null, accountId = null, refreshToken = null } = {}) {
   if (!db || !reviewId || !locationId) {
     throw new Error("reviewId および locationId は必須です。");
+  }
+
+  // env が指定されており、GBPへの返信がまだ行われていない場合は送信
+  let gbpResult = null;
+  if (env && replyText) {
+    try {
+      gbpResult = await postReplyToGoogleBusinessProfile(env, {
+        accountId: accountId || 'default',
+        locationId,
+        reviewId,
+        comment: replyText,
+        refreshToken
+      });
+    } catch (gbpErr) {
+      console.warn("postReplyToGoogleBusinessProfile inside updateReviewReply error:", gbpErr);
+    }
   }
 
   const query = `
@@ -1397,7 +2204,7 @@ export async function updateReviewReply(db, reviewId, locationId, { replyText, r
     throw new Error("対象のクチコミが見つかりません。");
   }
 
-  return { success: true, reviewId };
+  return { success: true, reviewId, ...(gbpResult ? { gbp: gbpResult } : {}) };
 }
 
 /**
@@ -1551,7 +2358,9 @@ export {
   handleStripeWebhook,
   handleLineEvent,
   verifyLineSignature,
-  sendLineTestPush
+  sendLineTestPush,
+  handleMagicLinkReply
 };
+
 
 

@@ -847,7 +847,7 @@
       const locationId = buttonEl.dataset.locationId;
       const previewId = buttonEl.dataset.previewId;
       const previewEl = document.getElementById(previewId);
-      let replyText = previewEl ? previewEl.innerText.trim() : '';
+      let replyText = previewEl ? (previewEl.innerText || previewEl.textContent || '').trim() : '';
       if (replyText.startsWith('「') && replyText.endsWith('」')) {
         replyText = replyText.slice(1, -1);
       }
@@ -1157,7 +1157,11 @@
         const data = await res.json();
         
         if (data.url) {
-          window.location.href = data.url;
+          if (typeof window.onNavigateUrl === 'function') {
+            window.onNavigateUrl(data.url);
+          } else {
+            window.location.href = data.url;
+          }
         } else {
           showToast('決済画面の生成に失敗しました: ' + (data.error || '不明なエラー'), 'error');
           btn.disabled = false;
@@ -1184,7 +1188,11 @@
         });
         const data = await res.json();
         if (data.url) {
-          window.location.href = data.url;
+          if (typeof window.onNavigateUrl === 'function') {
+            window.onNavigateUrl(data.url);
+          } else {
+            window.location.href = data.url;
+          }
         } else {
           showToast('カスタマーポータルを開けませんでした。先にお支払い登録を行ってください。', 'error');
           btn.disabled = false;

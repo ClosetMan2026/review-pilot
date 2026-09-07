@@ -7,9 +7,11 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "test": "node test_auth_security.js && node test_functions.js && node test_security_remediation.js",
+    "test": "node test_auth_security.js && node test_functions.js && node test_security_remediation.js && node test_gbp_integration.js",
     "test:auth": "node test_auth_security.js",
-    "test:security": "node test_security_remediation.js"
+    "test:security": "node test_security_remediation.js",
+    "test:gbp": "node test_gbp_integration.js",
+    "test:verify": "node verify_all_pages_and_features.js"
   },
   "keywords": [
     "cloudflare",
@@ -21,6 +23,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "jsdom": "^29.1.1",
     "wrangler": "^3.100.0"
   },
   "dependencies": {
