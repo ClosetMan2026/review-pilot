@@ -206,7 +206,8 @@
               const transText = document.getElementById('review-translation-text');
               if (transBox && transText) {
                 if (matched.translated_comment) {
-                  transText.innerText = matched.translated_comment;
+                  const formattedTrans = matched.translated_comment.startsWith('「') ? matched.translated_comment : `「${matched.translated_comment}」`;
+                  transText.innerText = formattedTrans;
                   transBox.classList.remove('hidden');
                 } else {
                   transBox.classList.add('hidden');
@@ -232,6 +233,9 @@
       }
 
       // フォールバック初期表示
+      const fallbackTransBox = document.getElementById('review-translation-box');
+      if (fallbackTransBox) fallbackTransBox.classList.add('hidden');
+
       document.getElementById('reviewer-name').innerText = '鈴木 一郎 様のクチコミ';
       document.getElementById('review-stars').innerText = '★★☆☆☆';
       document.getElementById('review-time').innerText = '新着';

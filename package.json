@@ -7,8 +7,9 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "test": "node test_auth_security.js && node test_functions.js",
-    "test:auth": "node test_auth_security.js"
+    "test": "node test_auth_security.js && node test_functions.js && node test_security_remediation.js",
+    "test:auth": "node test_auth_security.js",
+    "test:security": "node test_security_remediation.js"
   },
   "keywords": [
     "cloudflare",

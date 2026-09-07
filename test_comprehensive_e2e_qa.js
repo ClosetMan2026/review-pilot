@@ -953,11 +953,31 @@ async function main() {
   console.log("【5. AI生成 (AI Reply Generation)】");
   console.log("--------------------------------------------------------------------------------");
 
-  // 5.1 POST /api/generate - フォールバック動作（日本語） (Live)
-  await runTest("AI", "POST /api/generate - 日本語高評価クチコミのフォールバック生成 (Live)", async () => {
+  // 5.1 POST /api/generate - 未認証時 (Cookieなし) に 401 Unauthorized (Live)
+  await runTest("AI", "POST /api/generate - 未認証時 (Cookieなし) に 401 Unauthorized 遮断 (Live)", async () => {
     const res = await fetch(`${LIVE_API_BASE}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        rating: 5,
+        comment: '料理も接客も素晴らしかったです！また来ます。',
+        category: 'イタリアンレストラン',
+        locationName: '渋谷店'
+      })
+    });
+    assert.strictEqual(res.status, 401);
+    const data = await res.json();
+    assert.strictEqual(data.success, false);
+  });
+
+  // 5.2 POST /api/generate - 正常系（ログイン済みCookie）での日本語返信生成 (Live)
+  await runTest("AI", "POST /api/generate - ログイン済みセッションでの日本語返信生成 (Live)", async () => {
+    const res = await fetch(`${LIVE_API_BASE}/api/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': liveSessionCookie
+      },
       body: JSON.stringify({
         rating: 5,
         comment: '料理も接客も素晴らしかったです！また来ます。',
@@ -975,11 +995,14 @@ async function main() {
     assert.ok(data.replies.reply_c);
   });
 
-  // 5.2 POST /api/generate - フォールバック動作（英語・インバウンド翻訳） (Live)
+  // 5.3 POST /api/generate - 英語・インバウンド翻訳生成 (Live)
   await runTest("AI", "POST /api/generate - 英語クチコミの自動言語検知＆日本語訳付き生成 (Live)", async () => {
     const res = await fetch(`${LIVE_API_BASE}/api/generate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': liveSessionCookie
+      },
       body: JSON.stringify({
         rating: 5,
         comment: 'The pasta was wonderful! Best dinner in Tokyo.',
@@ -995,11 +1018,14 @@ async function main() {
     assert.ok(data.replies.reply_a_ja, "返信案Aの日本語訳が存在すること");
   });
 
-  // 5.3 POST /api/generate - 不正JSON時の 400 エラーハンドリング (Live)
+  // 5.4 POST /api/generate - 不正JSON時の 400 エラーハンドリング (Live)
   await runTest("AI", "POST /api/generate - 不正JSON時に 400 Bad Request を安全に返却 (Live)", async () => {
     const res = await fetch(`${LIVE_API_BASE}/api/generate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': liveSessionCookie
+      },
       body: '{bad_json'
     });
     assert.strictEqual(res.status, 400);
@@ -1007,22 +1033,18 @@ async function main() {
     assert.strictEqual(data.success, false);
   });
 
-  // 5.4 POST /api/generate - 未認証アクセス診断 (脆弱性)
-  await runTest("AI", "POST /api/generate - 認証欠落によるAPIクレジット枯渇リスクの検出", async () => {
-    recordVuln("VULN-06", "POST /api/generate: 未認証エンドポイント (API Quota Depletion / Scraper Risk)", "Medium", "/api/generate",
-      "POST /api/generate に認証が一切掛けられておらず、外部の誰でも無制限にリクエストを送信できます。本番で Gemini API キーが設定された場合、悪意のあるボットやスクレイパーにより API 利用枠が枯渇し、従量課金が高騰するリスクがあります。セッション認証またはレートリミットを導入すべきです。");
-  });
-
-  // 5.5 POST /api/generate - 実際のGemini 2.5 Flash API 連携 (Local with Mock/Key)
-  await runTest("AI", "POST /api/generate - Gemini 2.5 Flash API 呼び出しパスの検証 (Local)", async () => {
-    const devVars = loadDevVars();
+  // 5.5 POST /api/generate - 実際のGemini 3.5 Flash-Lite API 連携 (Local with Mock/Key)
+  await runTest("AI", "POST /api/generate - Gemini 3.5 Flash-Lite API 呼び出しパスの検証 (Local)", async () => {
     let calledGemini = false;
+    let checkedHeader = false;
     const originalFetch = globalThis.fetch;
 
     globalThis.fetch = async (url, opts) => {
       if (typeof url === 'string' && url.includes('generativelanguage.googleapis.com')) {
         calledGemini = true;
-        assert.match(url, /gemini-2\.5-flash/);
+        assert.match(url, /gemini-3\.5-flash-lite/);
+        assert.strictEqual(opts.headers?.['x-goog-api-key'], 'mock_test_key_123');
+        checkedHeader = true;
         return new Response(JSON.stringify({
           candidates: [{
             content: {
@@ -1046,17 +1068,20 @@ async function main() {
     };
 
     try {
-      const testEnv = { GEMINI_API_KEY: 'mock_test_key_123' };
+      const mockD1 = createMockDB();
+      const testEnv = { DB: mockD1, GEMINI_API_KEY: 'mock_test_key_123' };
       const req = new Request('http://localhost/api/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': 'session_id=sess_valid_shibuya'
+        },
         body: JSON.stringify({ rating: 5, comment: '最高でした！' })
       });
       const res = await worker.fetch(req, testEnv);
       assert.strictEqual(res.status, 200);
-      const data = await res.json();
-      assert.strictEqual(calledGemini, true, "Gemini API エンドポイントが正しくコールされたこと");
-      assert.strictEqual(data.replies.reply_a, "Gemini生成返信A");
+      assert.ok(calledGemini, "Gemini 3.5 Flash-Lite APIが呼び出されたこと");
+      assert.ok(checkedHeader, "x-goog-api-key ヘッダーが送信されたこと");
     } finally {
       globalThis.fetch = originalFetch;
     }

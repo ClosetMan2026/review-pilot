@@ -56,7 +56,7 @@
         <div>
           <div class="flex items-center justify-between mb-1">
             <label for="loginPassword" class="block text-xs font-bold text-slate-700">パスワード</label>
-            <a href="mailto:support@review-pilot.example.com?subject=パスワード再設定の問い合わせ" class="text-[11px] text-indigo-600 hover:underline font-medium">
+            <a href="mailto:support@reviewpilot.pages.dev?subject=パスワード再設定の問い合わせ" class="text-[11px] text-indigo-600 hover:underline font-medium">
               お困りの場合
             </a>
           </div>
@@ -754,14 +754,13 @@
         const isReplied = r.reply_status && r.reply_status.startsWith('replied');
         const formattedDate = formatDate(r.review_created_at || r.created_at);
 
-        // 外国語判定 (英語などの簡易判定)
-        const isForeign = /[a-zA-Z]{6,}/.test(r.comment || '') && !/[\u3040-\u30ff]/.test(r.comment || '');
         let translationHtml = '';
-        if (isForeign) {
+        if (r.translated_comment) {
+          const transText = r.translated_comment.startsWith('「') ? r.translated_comment : `「${r.translated_comment}」`;
           translationHtml = `
             <div class="bg-indigo-50/60 p-2.5 rounded-xl border border-indigo-100 text-xs text-slate-700 mb-2.5 flex items-start gap-1.5">
               <span class="font-bold text-indigo-700 shrink-0">🔍 AI日本語訳:</span>
-              <span class="italic text-slate-600">「トリュフパスタが最高でした！東京滞在中食べたイタリアンで一番です。スタッフも素晴らしく居心地が良かったです。」</span>
+              <span class="italic text-slate-600">${escapeHtml(transText)}</span>
             </div>
           `;
         }
@@ -856,11 +855,15 @@
     }
 
     async function quickReply(reviewId, locationId, replyTextOrEncoded, buttonEl) {
-      let replyText = replyTextOrEncoded;
-      if (typeof replyTextOrEncoded === 'string' && (replyTextOrEncoded.includes('%') || !replyTextOrEncoded.includes(' '))) {
-        try {
-          replyText = decodeURIComponent(replyTextOrEncoded);
-        } catch (e) {}
+      let replyText = replyTextOrEncoded || '';
+      if (typeof replyText === 'string') {
+        if (/%[0-9a-fA-F]{2}/.test(replyText)) {
+          try {
+            replyText = decodeURIComponent(replyText);
+          } catch (e) {
+            // malformed URI の場合は元のテキストをそのまま使用
+          }
+        }
       }
       const origHtml = buttonEl.innerHTML;
 
@@ -1063,7 +1066,7 @@
       if (!dateStr) return '';
       try {
         const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return dateStr;
+        if (isNaN(d.getTime())) return escapeHtml(dateStr);
         const y = d.getFullYear();
         const m = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
@@ -1071,7 +1074,7 @@
         const min = String(d.getMinutes()).padStart(2, '0');
         return `${y}/${m}/${day} ${h}:${min}`;
       } catch (e) {
-        return dateStr;
+        return escapeHtml(dateStr);
       }
     }
 

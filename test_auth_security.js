@@ -136,7 +136,7 @@ function createInMemoryD1() {
               }
 
               // 2. SELECT ... FROM reviews WHERE location_id = ?
-              if (sql.includes('FROM reviews') && sql.includes('WHERE location_id = ?')) {
+              if (sql.includes('FROM reviews') && (sql.includes('WHERE location_id = ?') || sql.includes('WHERE r.location_id = ?'))) {
                 const locId = args[0];
                 return { results: reviews.filter(r => r.location_id === locId) };
               }

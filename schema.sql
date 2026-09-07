@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS reviews (
     reviewer_name TEXT,
     star_rating INTEGER NOT NULL, -- 1 to 5
     comment TEXT,
+    translated_comment TEXT,
     review_created_at TIMESTAMP,
     reply_status TEXT DEFAULT 'pending', -- pending, replied_a, replied_b, replied_c, replied_manual
     generated_reply_a TEXT,

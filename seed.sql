@@ -89,7 +89,7 @@ INSERT OR REPLACE INTO locations (
 
 -- 4. 口コミデータ (reviews)
 INSERT OR REPLACE INTO reviews (
-    id, location_id, reviewer_name, star_rating, comment,
+    id, location_id, reviewer_name, star_rating, comment, translated_comment,
     review_created_at, reply_status,
     generated_reply_a, generated_reply_b, generated_reply_c,
     final_reply_text, replied_at
@@ -100,6 +100,7 @@ INSERT OR REPLACE INTO reviews (
     '田中 太郎 様',
     5,
     'ランチで訪問しました。カルボナーラがとても美味しかったです！店員さんの接客も心地よく、また利用したいと思います。',
+    NULL,
     datetime('now', '-2 days'),
     'replied_a',
     'この度はご来店いただき誠にありがとうございました。カルボナーラをお気に召していただけて大変光栄です！次回はぜひディナーの限定メニューもお試しくださいませ。',
@@ -114,6 +115,7 @@ INSERT OR REPLACE INTO reviews (
     'David Miller 様',
     5,
     'The truffle pasta was amazing! Best Italian food we had during our stay in Tokyo. Great staff and cozy ambiance.',
+    '「トリュフパスタが本当に絶品でした！東京滞在中で最高のイタリアンでした。スタッフも素晴らしく、居心地の良い雰囲気でした。」',
     datetime('now', '-3 days'),
     'replied_a',
     'Thank you so much for your wonderful review! We are delighted that you enjoyed our truffle pasta. Have a fantastic stay in Japan, and we hope to see you again!',
@@ -128,6 +130,7 @@ INSERT OR REPLACE INTO reviews (
     '佐藤 花子 様',
     4,
     'ピザの生地がモチモチで最高でした！ただ少し混んでいて席に案内されるまで10分ほど待ちました。',
+    NULL,
     datetime('now', '-4 days'),
     'replied_b',
     'この度は当店をご利用いただき誠にありがとうございます。ピザをお褒めいただき光栄です。混雑時にお待たせしてしまい申し訳ありませんでした。またのお越しをお待ちしております。',
@@ -142,6 +145,7 @@ INSERT OR REPLACE INTO reviews (
     '鈴木 一郎 様',
     2,
     '料理はおいしかったのですが、隣の席との間隔が狭くて少し落ち着かなかったです。',
+    NULL,
     datetime('now', '-1 hours'),
     'pending',
     'この度はご来店いただきありがとうございました。お席の間隔に関しまして、落ち着いてお食事いただけず申し訳ございませんでした。今後のレイアウト改善の参考にさせていただきます。',
@@ -156,6 +160,7 @@ INSERT OR REPLACE INTO reviews (
     '山田 次郎 様',
     5,
     '新宿店のランチコースをいただきました。お肉の焼き加減が素晴らしく、ワインも最高でした！',
+    NULL,
     datetime('now', '-1 days'),
     'replied_a',
     'ご来店誠にありがとうございました。ローストビーフとお料理に合わせたワインをお楽しみいただけて幸いです。またのご来店を心よりお待ちしております。',

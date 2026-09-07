@@ -53,7 +53,7 @@ function createMockDB() {
                 const userId = args[0];
                 return { results: locations.filter(l => l.user_id === userId) };
               }
-              if (sql.includes('FROM reviews') && sql.includes('WHERE location_id = ?')) {
+              if (sql.includes('FROM reviews') && (sql.includes('WHERE location_id = ?') || sql.includes('WHERE r.location_id = ?'))) {
                 const locId = args[0];
                 return { results: reviews.filter(r => r.location_id === locId) };
               }
